@@ -460,12 +460,6 @@ function addToGoogleCalendar() {
                 <span class="inline-flex items-center gap-1 rounded-lg bg-blue-900/40 px-2.5 py-1 text-blue-100">
                   <MapPin class="size-3 text-rose-400 shrink-0" /> কোয়ান্টামম, লামা, বান্দরবান
                 </span>
-                <span class="inline-flex items-center gap-1 rounded-lg bg-blue-900/40 px-2.5 py-1 text-blue-100">
-                  <Shirt class="size-3 text-blue-300 shrink-0" /> উৎসব টি-শার্ট ও উপহার কিট
-                </span>
-                <span class="inline-flex items-center gap-1 rounded-lg bg-blue-900/40 px-2.5 py-1 text-blue-100">
-                  <UtensilsCrossed class="size-3 text-amber-300 shrink-0" /> গ্র্যান্ড ভোজ ও সাংস্কৃতিক সন্ধ্যা
-                </span>
               </div>
             </div>
 
