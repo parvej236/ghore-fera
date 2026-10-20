@@ -125,15 +125,15 @@ function completeRegistration() {
                   <legend class="px-2 text-sm font-bold">Guest {{ index + 1 }}</legend>
                   <div class="grid gap-4 sm:grid-cols-2">
                     <label>
-                      <span class="mb-2 block text-sm font-semibold">Guest name <span class="text-[#bc553e]">*</span></span>
+                      <span class="mb-2 block text-sm font-semibold">Guest Full Name <span class="text-[#bc553e]">*</span></span>
                       <input v-model.trim="guest.name" required class="form-control" placeholder="Full name" />
                     </label>
                     <label>
-                      <span class="mb-2 block text-sm font-semibold">Guest number <span class="text-[#bc553e]">*</span></span>
+                      <span class="mb-2 block text-sm font-semibold">Mobile Number <span class="text-[#bc553e]">*</span></span>
                       <input v-model.trim="guest.number" type="tel" inputmode="tel" required pattern="01[3-9][0-9]{8}" title="Enter a valid 11-digit Bangladesh mobile number starting with 01" class="form-control" placeholder="01XXXXXXXXX" />
                     </label>
                     <label>
-                      <span class="mb-2 block text-sm font-semibold">Guest gender <span class="text-[#bc553e]">*</span></span>
+                      <span class="mb-2 block text-sm font-semibold">Gender <span class="text-[#bc553e]">*</span></span>
                       <select v-model="guest.gender" required class="form-control"><option value="" disabled>Select gender</option><option>Male</option><option>Female</option></select>
                     </label>
                     <label>
