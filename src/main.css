@@ -1,7 +1,23 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'SolaimanLipi';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/solaimanlipi-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'SolaimanLipi';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/solaimanlipi-bold.woff2') format('woff2');
+}
+
 :root {
-  font-family: 'Plus Jakarta Sans', 'Hind Siliguri', 'DM Sans', sans-serif;
+  font-family: 'SolaimanLipi', 'Kalpurush', 'Nikosh', 'SutonnyBanglaOMJ', 'Noto Serif Bengali', 'Plus Jakarta Sans', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -12,7 +28,7 @@
 }
 
 .font-bangla {
-  font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+  font-family: 'SolaimanLipi', 'Kalpurush', 'Nikosh', 'SutonnyBanglaOMJ', 'Noto Serif Bengali', serif;
 }
 
 html {
@@ -24,6 +40,7 @@ body {
   margin: 0;
   background-color: #f1f6fd;
   color: #0f2747;
+  font-family: 'SolaimanLipi', 'Kalpurush', 'Nikosh', 'SutonnyBanglaOMJ', 'Noto Serif Bengali', 'Plus Jakarta Sans', sans-serif;
 }
 
 /* Print styles for ticket printing */
@@ -43,4 +60,13 @@ body {
     border: 2px solid #000 !important;
     page-break-inside: avoid;
   }
+}
+
+/* Hide scrollbars while allowing scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
