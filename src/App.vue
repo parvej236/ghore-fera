@@ -476,12 +476,6 @@ function addToGoogleCalendar() {
                 <span>৳১০০</span>
                 <span class="text-xs font-normal text-blue-200">/ ফিক্সড ফি</span>
               </div>
-              <p class="mt-1 text-[11px] sm:text-xs text-blue-200">
-                অতিথি সহ সকল আয়োজন ও ভোজ অন্তর্ভুক্ত
-              </p>
-              <div class="mt-2.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300">
-                <ShieldCheck class="size-3.5 shrink-0" /> ১০০% সুরক্ষিত অনলাইন নিবন্ধন
-              </div>
             </div>
           </div>
         </section>
@@ -504,9 +498,6 @@ function addToGoogleCalendar() {
                     <p class="text-[11px] sm:text-xs text-slate-500 truncate">আপনার এন্ট্রি পাস ও ব্যাজে যেভাবে তথ্য থাকবে।</p>
                   </div>
                 </div>
-                <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] sm:text-xs font-medium text-blue-700 shrink-0">
-                  ধাপ ১ / ৩
-                </span>
               </div>
 
               <div class="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
@@ -594,7 +585,7 @@ function addToGoogleCalendar() {
                 <!-- Gender Selector with PROPER RADIO BUTTONS -->
                 <div>
                   <label class="mb-1 block text-xs font-semibold text-slate-700">
-                    লিঙ্গ (gender) <span class="text-rose-500">*</span>
+                    Gender <span class="text-rose-500">*</span>
                   </label>
                   <div class="grid grid-cols-2 gap-2">
                     <!-- Male Radio Button -->
@@ -651,7 +642,6 @@ function addToGoogleCalendar() {
                     <label class="block text-xs font-semibold text-slate-700">
                       T-Shirt Size <span class="text-rose-500">*</span>
                     </label>
-                    <span class="text-[11px] text-blue-700 font-medium">উপহার হিসেবে দেয়া হবে</span>
                   </div>
                   <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-blue-600">
@@ -792,7 +782,7 @@ function addToGoogleCalendar() {
                     <!-- Guest Name -->
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-slate-700">
-                        অতিথির পুরো নাম <span class="text-rose-500">*</span>
+                        Guest's Full Name <span class="text-rose-500">*</span>
                       </label>
                       <div class="relative">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-indigo-600">
@@ -811,7 +801,7 @@ function addToGoogleCalendar() {
                     <!-- Guest Mobile -->
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-slate-700">
-                        মোবাইল নম্বর
+                       Mobile Number
                       </label>
                       <div class="relative">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-emerald-600">
@@ -855,7 +845,7 @@ function addToGoogleCalendar() {
                     <!-- Guest Gender with PROPER RADIO BUTTONS -->
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-slate-700">
-                        লিঙ্গ (gender)
+                        Gender
                       </label>
                       <div class="grid grid-cols-2 gap-2">
                         <label
@@ -903,7 +893,7 @@ function addToGoogleCalendar() {
                     <!-- Guest T-Shirt Size SELECT OPTION DROPDOWN LIST -->
                     <div>
                       <label class="mb-1 block text-xs font-semibold text-slate-700">
-                        টি-শার্ট সাইজ (t-shirt size)
+                        T-Shirt Size
                       </label>
                       <div class="relative">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600">
