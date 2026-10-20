@@ -513,7 +513,7 @@ function addToGoogleCalendar() {
                 <!-- Full Name -->
                 <div class="sm:col-span-2">
                   <label class="mb-1 block text-xs font-semibold text-slate-700">
-                    পুরো নাম (full name) <span class="text-rose-500">*</span>
+                    Full Name <span class="text-rose-500">*</span>
                   </label>
                   <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-blue-600">
@@ -531,7 +531,7 @@ function addToGoogleCalendar() {
                 <!-- Quanta ID -->
                 <div>
                   <label class="mb-1 block text-xs font-semibold text-slate-700">
-                    কোয়ান্টা আইডি বা রোল (quanta id) <span class="text-rose-500">*</span>
+                    Quanta ID <span class="text-rose-500">*</span>
                   </label>
                   <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-indigo-600">
@@ -568,10 +568,10 @@ function addToGoogleCalendar() {
                 <div>
                   <div class="mb-1 flex items-center justify-between">
                     <label class="block text-xs font-semibold text-slate-700">
-                      মোবাইল নম্বর (mobile number) <span class="text-rose-500">*</span>
+                      Mobile Number <span class="text-rose-500">*</span>
                     </label>
                     <span v-if="isMobileValid" class="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                      <CheckCircle2 class="size-3.5" /> সঠিক
+                      <CheckCircle2 class="size-3.5" /> Valid
                     </span>
                   </div>
                   <div class="relative">
@@ -616,7 +616,7 @@ function addToGoogleCalendar() {
                         <div v-if="form.gender === 'male'" class="size-1.5 rounded-full bg-white"></div>
                       </div>
                       <span class="text-xs font-semibold text-[#0f2747]">
-                        পুরুষ (male)
+                        Male
                       </span>
                     </label>
 
@@ -639,7 +639,7 @@ function addToGoogleCalendar() {
                         <div v-if="form.gender === 'female'" class="size-1.5 rounded-full bg-white"></div>
                       </div>
                       <span class="text-xs font-semibold text-[#0f2747]">
-                        মহিলা (female)
+                        Female
                       </span>
                     </label>
                   </div>
@@ -649,7 +649,7 @@ function addToGoogleCalendar() {
                 <div class="sm:col-span-2">
                   <div class="mb-1 flex items-center justify-between">
                     <label class="block text-xs font-semibold text-slate-700">
-                      টি-শার্ট সাইজ (t-shirt size) <span class="text-rose-500">*</span>
+                      T-Shirt Size <span class="text-rose-500">*</span>
                     </label>
                     <span class="text-[11px] text-blue-700 font-medium">উপহার হিসেবে দেয়া হবে</span>
                   </div>
@@ -662,7 +662,7 @@ function addToGoogleCalendar() {
                       required
                       class="block w-full min-h-[46px] appearance-none rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-10 text-base sm:text-sm text-[#0f2747] transition focus:border-blue-600 focus:bg-white focus:outline-none"
                     >
-                      <option value="" disabled>টি-শার্ট সাইজ নির্বাচন করুন</option>
+                      <option value="" disabled>Select T-Shirt Size</option>
                       <option v-for="s in tShirtSizes" :key="s.code" :value="s.code">
                         {{ s.label }} — চেস্ট সাইজ: {{ s.chest }}
                       </option>
@@ -676,7 +676,7 @@ function addToGoogleCalendar() {
                 <!-- Occupation -->
                 <div>
                   <label class="mb-1 block text-xs font-semibold text-slate-700">
-                    পেশা (occupation) <span class="text-rose-500">*</span>
+                    Occupation <span class="text-rose-500">*</span>
                   </label>
                   <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-sky-600">
@@ -686,7 +686,7 @@ function addToGoogleCalendar() {
                       v-model.trim="form.occupation"
                       type="text"
                       required
-                      placeholder="যেমন: শিক্ষার্থী / শিক্ষক / চাকুরিজীবী"
+                      placeholder="e.g., Student / Teacher / Employee"
                       class="block w-full min-h-[46px] rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-4 text-base sm:text-sm text-[#0f2747] placeholder-slate-400 transition focus:border-blue-600 focus:bg-white focus:outline-none"
                     />
                   </div>
@@ -695,7 +695,7 @@ function addToGoogleCalendar() {
                 <!-- Institution -->
                 <div>
                   <label class="mb-1 block text-xs font-semibold text-slate-700">
-                    বর্তমান প্রতিষ্ঠান (institution / workplace) <span class="text-rose-500">*</span>
+                    Institution / Workplace <span class="text-rose-500">*</span>
                   </label>
                   <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-violet-600">
@@ -705,7 +705,7 @@ function addToGoogleCalendar() {
                       v-model.trim="form.institution"
                       type="text"
                       required
-                      placeholder="বিশ্ববিদ্যালয়, কলেজ বা কর্মক্ষেত্র"
+                      placeholder="e.g., University, College or Workplace"
                       class="block w-full min-h-[46px] rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-4 text-base sm:text-sm text-[#0f2747] placeholder-slate-400 transition focus:border-blue-600 focus:bg-white focus:outline-none"
                     />
                   </div>
@@ -723,16 +723,16 @@ function addToGoogleCalendar() {
                   </div>
                   <div>
                     <h2 class="text-base sm:text-lg font-bold text-[#0c234a]">
-                      ২. সঙ্গী বা পরিবারের তথ্য <span class="text-xs font-normal text-slate-500">· guests</span>
+                      2. Guests & Family Information <span class="text-xs font-normal text-slate-500">· guests</span>
                     </h2>
                     <p class="text-[11px] sm:text-xs text-slate-500">
-                      অতিথিদের জন্য কোনো অতিরিক্ত ফি নেই।
+                      No additional fee for guests.
                     </p>
                   </div>
                 </div>
 
                 <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                  ফ্রি (বিনামূল্যে)
+                  Free (No Charge)
                 </span>
               </div>
 
@@ -756,7 +756,7 @@ function addToGoogleCalendar() {
                     @click="addGuest"
                   >
                     <Plus class="size-4" />
-                    <span>অতিথি যোগ করুন (add guest)</span>
+                    <span>Add Guest</span>
                   </button>
                 </div>
               </div>
@@ -963,7 +963,7 @@ function addToGoogleCalendar() {
               <!-- Payment Method Selector (Responsive Grid with 5th Item Spanning Full Width on Mobile) -->
               <div>
                 <label class="mb-2 block text-xs font-semibold text-slate-700">
-                  পেমেন্ট মাধ্যম বেছে নিন (select payment method) <span class="text-rose-500">*</span>
+                  Select a Payment Method <span class="text-rose-500">*</span>
                 </label>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                   <button
@@ -1042,9 +1042,6 @@ function addToGoogleCalendar() {
               <div class="mt-4 rounded-xl bg-blue-50/60 p-3.5 sm:p-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div>
-                    <span class="text-xs font-bold text-blue-900">
-                      {{ selectedPaymentConfig.name }} পেমেন্ট সংক্রান্ত তথ্য
-                    </span>
                     <div class="mt-0.5 flex flex-wrap items-center gap-2">
                       <span class="font-mono text-base sm:text-lg font-bold text-blue-950">
                         {{ selectedPaymentConfig.number }}
