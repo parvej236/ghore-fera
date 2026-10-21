@@ -32,7 +32,11 @@ import {
   ChevronDown,
   UserPlus,
   Download,
-  Send
+  Send,
+  Receipt,
+  Lock,
+  X,
+  Sparkles
 } from '@lucide/vue'
 import quantumLogo from './quantum-logo.png'
 
@@ -40,6 +44,7 @@ const registrationFee = 100
 const isComplete = ref(false)
 const isSubmitting = ref(false)
 const copied = ref(false)
+const sampleDataFilled = ref(false)
 const registrationRefNumber = ref('')
 
 const tShirtSizes = [
@@ -50,28 +55,19 @@ const tShirtSizes = [
   { code: '3XL', label: '3XL (31")', length: '31"' },
 ]
 
-const paymentMethods = [
-  {
-    id: 'bkash',
-    name: 'bKash',
-    bnName: 'বিকাশ',
-    number: '01712-345678',
-    type: 'send money',
-    brandColor: '#E2136E',
-    activeBg: 'bg-pink-50 border-pink-500',
-    instructions: 'বিকাশ অ্যাপ বা *247# ডায়াল করে send money করুন।'
-  },
-  {
-    id: 'nagad',
-    name: 'nagad',
-    bnName: 'নগদ',
-    number: '01812-345678',
-    type: 'send money',
-    brandColor: '#F7941D',
-    activeBg: 'bg-orange-50 border-orange-500',
-    instructions: 'নগদ অ্যাপ বা *167# ডায়াল করে send money করুন।'
-  }
+const gatewayChannels = [
+  { id: 'bkash', name: 'bKash', bnName: 'বিকাশ', color: '#E2136E' },
+  { id: 'nagad', name: 'Nagad', bnName: 'নগদ', color: '#F7941D' },
+  { id: 'rocket', name: 'Rocket', bnName: 'রকেট', color: '#8C3494' },
+  { id: 'card', name: 'Cards', bnName: 'কার্ড', color: '#1A1F71' },
 ]
+
+const showPaymentModal = ref(false)
+const gatewayChannel = ref('bkash')
+const gatewayStep = ref('input') // 'input' | 'processing' | 'success'
+const gatewayAccount = ref('')
+const gatewayPin = ref('')
+const gatewayAgree = ref(true)
 
 const transportOptions = [
   {
@@ -137,10 +133,6 @@ const totalFee = computed(() => {
   return registrationFee + selectedTransport.value.fee
 })
 
-const selectedPaymentConfig = computed(() => {
-  return paymentMethods.find((p) => p.id === form.paymentMethod) || paymentMethods[0]
-})
-
 const isMobileValid = computed(() => {
   return /^01[3-9]\d{8}$/.test(form.mobileNumber.replace(/\D/g, ''))
 })
@@ -157,14 +149,66 @@ function decrementChildren() {
   }
 }
 
-function copyPaymentNumber(number) {
-  const cleanNumber = number.replace(/[^0-9]/g, '')
-  navigator.clipboard.writeText(cleanNumber || number).then(() => {
-    copied.value = true
+function fillSampleData() {
+  form.fullName = 'আব্দুল্লাহ আল মামুন'
+  form.quantaId = '10582'
+  form.gender = 'male'
+  form.mobileNumber = '01712345678'
+  form.occupation = 'সফটওয়্যার প্রকৌশলী'
+  form.institution = 'ব্র্যাক আইটি সার্ভিসেস'
+  form.batch = '2016'
+  form.tShirtSize = 'XL'
+  form.hasSpouse = true
+  form.childrenCount = 1
+  form.transportOption = 'dhaka'
+
+  sampleDataFilled.value = true
+  setTimeout(() => {
+    sampleDataFilled.value = false
+  }, 4000)
+}
+
+function openPaymentGateway() {
+  gatewayAccount.value = form.mobileNumber || ''
+  gatewayPin.value = '1234'
+  gatewayStep.value = 'input'
+  showPaymentModal.value = true
+}
+
+function closePaymentGateway() {
+  if (gatewayStep.value === 'processing') return
+  showPaymentModal.value = false
+}
+
+function submitGatewayPayment() {
+  gatewayStep.value = 'processing'
+  setTimeout(() => {
+    const randStr = Math.random().toString(36).substring(2, 8).toUpperCase()
+    let prefix = 'TX'
+    let channelLabel = 'Card'
+    if (gatewayChannel.value === 'bkash') {
+      prefix = 'BK'
+      channelLabel = 'bKash'
+    } else if (gatewayChannel.value === 'nagad') {
+      prefix = 'NG'
+      channelLabel = 'Nagad'
+    } else if (gatewayChannel.value === 'rocket') {
+      prefix = 'RK'
+      channelLabel = 'Rocket'
+    } else {
+      prefix = 'CD'
+      channelLabel = 'Visa/Mastercard'
+    }
+
+    form.transactionId = `${prefix}${randStr}`
+    form.paymentMethod = channelLabel
+    gatewayStep.value = 'success'
+
     setTimeout(() => {
-      copied.value = false
-    }, 2500)
-  })
+      showPaymentModal.value = false
+      completeRegistration()
+    }, 700)
+  }, 1300)
 }
 
 function triggerFestiveConfetti() {
@@ -211,192 +255,321 @@ function completeRegistration() {
   }, 200)
 }
 
-onMounted(() => {
-  try {
-    const saved = localStorage.getItem('reunion2027_registered')
-    if (saved) {
-      const data = JSON.parse(saved)
-      if (data && data.ref) {
-        registrationRefNumber.value = data.ref
-        if (data.form) {
-          Object.assign(form, data.form)
-        }
-        isComplete.value = true
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-})
-
-function downloadRegistrationSlip() {
+function downloadMoneyReceipt() {
   try {
     const canvas = document.createElement('canvas')
-    canvas.width = 800
-    canvas.height = 1020
+    canvas.width = 900
+    canvas.height = 1250
     const ctx = canvas.getContext('2d')
-    if (ctx) {
-      // Background gradient
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, 1020)
-      bgGrad.addColorStop(0, '#061836')
-      bgGrad.addColorStop(1, '#020b18')
-      ctx.fillStyle = bgGrad
-      ctx.fillRect(0, 0, 800, 1020)
+    if (!ctx) return
 
-      // Card container
-      ctx.fillStyle = '#ffffff'
-      if (ctx.roundRect) {
-        ctx.beginPath()
-        ctx.roundRect(30, 30, 740, 960, 24)
-        ctx.fill()
-      } else {
-        ctx.fillRect(30, 30, 740, 960)
-      }
+    // Background - crisp white
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, 900, 1250)
 
-      // Header Banner
-      const headerGrad = ctx.createLinearGradient(30, 30, 770, 170)
-      headerGrad.addColorStop(0, '#0c234a')
-      headerGrad.addColorStop(1, '#1d4ed8')
-      ctx.fillStyle = headerGrad
-      if (ctx.roundRect) {
-        ctx.beginPath()
-        ctx.roundRect(30, 30, 740, 140, [24, 24, 0, 0])
-        ctx.fill()
-      } else {
-        ctx.fillRect(30, 30, 740, 140)
-      }
+    // Outer decorative border
+    ctx.strokeStyle = '#0c234a'
+    ctx.lineWidth = 4
+    ctx.strokeRect(25, 25, 850, 1200)
 
-      // Title
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 26px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('ঘরে ফেরা আনন্দ উৎসব ২০২৭', 400, 75)
+    ctx.strokeStyle = '#d97706'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(32, 32, 836, 1186)
 
-      ctx.font = '15px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
-      ctx.fillStyle = '#bfdbfe'
-      ctx.fillText('কোয়ান্টা রিইউনিয়ন • কোয়ান্টাম কসমো স্কুল ও কলেজ', 400, 110)
+    // Header Background Band
+    const headerGrad = ctx.createLinearGradient(35, 35, 865, 175)
+    headerGrad.addColorStop(0, '#061836')
+    headerGrad.addColorStop(0.5, '#0a234c')
+    headerGrad.addColorStop(1, '#0c2e64')
+    ctx.fillStyle = headerGrad
+    ctx.fillRect(35, 35, 830, 155)
 
-      ctx.font = '13px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
-      ctx.fillStyle = '#fef08a'
-      ctx.fillText('১৬-১৭ ডিসেম্বর ২০২৬ • কোয়ান্টামম, লামা, বান্দরবান', 400, 142)
+    // Header Title
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 28px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('কোয়ান্টাম কসমো স্কুল ও কলেজ', 450, 80)
 
-      // Reference Card
-      ctx.fillStyle = '#eff6ff'
-      if (ctx.roundRect) {
-        ctx.beginPath()
-        ctx.roundRect(60, 195, 680, 60, 12)
-        ctx.fill()
-      } else {
-        ctx.fillRect(60, 195, 680, 60)
-      }
+    ctx.font = '14px "Plus Jakarta Sans", sans-serif'
+    ctx.fillStyle = '#93c5fd'
+    ctx.fillText('QUANTUM COSMO SCHOOL & COLLEGE • LAMA, BANDARBAN', 450, 108)
 
-      ctx.fillStyle = '#1e3a8a'
-      ctx.font = 'bold 15px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
-      ctx.textAlign = 'left'
-      ctx.fillText('রেজিস্ট্রেশন রেফারেন্স নম্বর (Ref No):', 85, 232)
+    ctx.font = 'bold 18px "SolaimanLipi", sans-serif'
+    ctx.fillStyle = '#fde68a'
+    ctx.fillText('ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন)', 450, 140)
 
-      ctx.font = 'bold 18px monospace'
-      ctx.textAlign = 'right'
-      ctx.fillText(registrationRefNumber.value || 'qcsc-2027-00000', 715, 232)
+    ctx.font = '12px "SolaimanLipi", sans-serif'
+    ctx.fillStyle = '#e2e8f0'
+    ctx.fillText('তারিখ: ১৬-১৭ ডিসেম্বর ২০২৬ • স্থান: কোয়ান্টামম, লামা, বান্দরবান', 450, 168)
 
-      // Rows
-      const fields = [
-        ['অংশগ্রহণকারীর নাম:', form.fullName || '-'],
-        ['কোয়ান্টা আইডি:', form.quantaId || '-'],
-        ['মোবাইল নম্বর:', form.mobileNumber || '-'],
-        ['ব্যাচ / পাসের বছর:', form.batch || '-'],
-        ['টি-শার্ট সাইজ ও জেন্ডার:', `${form.tShirtSize} • ${form.gender === 'male' ? 'পুরুষ' : 'মহিলা'}`],
-        ['স্পাউস (স্বামী/স্ত্রী):', form.hasSpouse ? 'হ্যাঁ (সাথে আসবেন)' : 'না'],
-        ['সন্তান সংখ্যা:', `${form.childrenCount || 0} জন`],
-        ['যাতায়াত ব্যবস্থা:', selectedTransport.value.title],
-        ['পেমেন্ট মাধ্যম:', form.paymentMethod.toUpperCase()],
-        ['ট্রানজেকশন নম্বর:', form.transactionId || '-'],
-        ['সর্বমোট প্রদেয় ফি:', `৳${totalFee.value}`]
-      ]
+    // Document Title Banner
+    ctx.fillStyle = '#f1f5f9'
+    ctx.fillRect(35, 190, 830, 48)
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.lineWidth = 1
+    ctx.strokeRect(35, 190, 830, 48)
 
-      let y = 300
-      ctx.textAlign = 'left'
-      fields.forEach(([label, value], i) => {
-        if (i % 2 === 0) {
-          ctx.fillStyle = '#f8fafc'
-          ctx.fillRect(60, y - 22, 680, 36)
-        }
-        ctx.fillStyle = '#475569'
-        ctx.font = '14px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
-        ctx.fillText(label, 80, y)
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 20px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('অফিসিয়াল মানি রিসিট • OFFICIAL MONEY RECEIPT', 450, 222)
 
-        ctx.fillStyle = i === fields.length - 1 ? '#0c234a' : '#0f172a'
-        ctx.font = i === fields.length - 1 ? 'bold 18px "SolaimanLipi", sans-serif' : 'bold 14px "SolaimanLipi", sans-serif'
-        ctx.textAlign = 'right'
-        ctx.fillText(String(value), 720, y)
-        ctx.textAlign = 'left'
-        y += 40
-      })
+    // Receipt Meta Bar (Receipt No, Date, Ref No)
+    ctx.fillStyle = '#f8fafc'
+    ctx.fillRect(55, 255, 790, 70)
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.strokeRect(55, 255, 790, 70)
 
-      // Divider & Footer
-      ctx.strokeStyle = '#e2e8f0'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(60, y + 15)
-      ctx.lineTo(740, y + 15)
-      ctx.stroke()
+    const receiptNo = `MR-2027-${registrationRefNumber.value ? registrationRefNumber.value.replace(/[^0-9]/g, '') : '91823'}`
+    const currentDate = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
 
-      ctx.fillStyle = '#059669'
-      ctx.font = 'bold 16px "SolaimanLipi", sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('✓ নিবন্ধন সফলভাবে গৃহীত হয়েছে', 400, y + 55)
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('রিসিট নম্বর (Receipt No):', 75, 282)
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 16px monospace'
+    ctx.fillText(receiptNo, 75, 308)
 
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('তারিখ (Date):', 360, 282)
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 15px "SolaimanLipi", sans-serif'
+    ctx.fillText(currentDate, 360, 308)
+
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('রেফারেন্স (Ref No):', 610, 282)
+    ctx.fillStyle = '#1d4ed8'
+    ctx.font = 'bold 15px monospace'
+    ctx.fillText(registrationRefNumber.value || 'QCSC-2027-REF', 610, 308)
+
+    // Payer Details Box
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(55, 340, 790, 140)
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.strokeRect(55, 340, 790, 140)
+
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 15px "SolaimanLipi", sans-serif'
+    ctx.fillText('অর্থ প্রদানকারীর বিবরণ (Payer Details):', 75, 370)
+
+    const payerDetails = [
+      ['নাম (Full Name):', form.fullName || '-'],
+      ['কোয়ান্টা আইডি:', form.quantaId || '-'],
+      ['মোবাইল নম্বর:', form.mobileNumber || '-'],
+      ['ব্যাচ / পাসের বছর:', form.batch || '-'],
+      ['টি-শার্ট সাইজ:', `${form.tShirtSize} (${form.gender === 'male' ? 'পুরুষ' : 'মহিলা'})`],
+      ['মোট সদস্য সংখ্যা:', `${attendeeCount.value} জন (স্পাউস: ${form.hasSpouse ? 'হ্যাঁ' : 'না'}, সন্তান: ${form.childrenCount || 0} জন)`]
+    ]
+
+    let py = 402
+    payerDetails.forEach(([lbl, val], idx) => {
+      const colX = idx % 2 === 0 ? 75 : 460
+      const rowY = py + Math.floor(idx / 2) * 26
       ctx.fillStyle = '#64748b'
-      ctx.font = '12px "SolaimanLipi", sans-serif'
-      ctx.fillText(`ডাউনলোড সময়: ${new Date().toLocaleDateString('bn-BD')} | হটলাইন: 01700-000000`, 400, y + 85)
+      ctx.font = '14px "SolaimanLipi", sans-serif'
+      ctx.fillText(lbl, colX, rowY)
+      ctx.fillStyle = '#0f172a'
+      ctx.font = 'bold 14px "SolaimanLipi", sans-serif'
+      ctx.fillText(String(val), colX + 130, rowY)
+    })
 
-      const link = document.createElement('a')
-      link.download = `reunion2027-${form.quantaId || 'slip'}-${registrationRefNumber.value || 'info'}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-      return
-    }
-  } catch (e) {
-    // fallback
+    // Line Items Table Header
+    ctx.fillStyle = '#0a234c'
+    ctx.fillRect(55, 500, 790, 40)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 14px "SolaimanLipi", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('ক্র.', 85, 526)
+    ctx.textAlign = 'left'
+    ctx.fillText('বিবরণ (Particulars)', 130, 526)
+    ctx.textAlign = 'right'
+    ctx.fillText('পরিমাণ (Amount)', 815, 526)
+
+    // Table Rows
+    const items = [
+      ['১', 'ঘরে ফেরা আনন্দ উৎসব ২০২৭ - আনুষ্ঠানিক নিবন্ধন ফি', `৳${registrationFee}`],
+      ['২', `যাতায়াত ব্যবস্থা (${selectedTransport.value.title})`, selectedTransport.value.feeText],
+      ['৩', `স্পাউস ও সন্তান (${attendeeCount.value > 1 ? attendeeCount.value - 1 + ' জন পরিবার সদস্য' : 'প্রযোজ্য নয়'})`, 'বিনামূল্যে / অন্তর্ভুক্ত']
+    ]
+
+    let itemY = 540
+    items.forEach(([sl, desc, amt], i) => {
+      ctx.fillStyle = i % 2 === 0 ? '#f8fafc' : '#ffffff'
+      ctx.fillRect(55, itemY, 790, 42)
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.strokeRect(55, itemY, 790, 42)
+
+      ctx.fillStyle = '#475569'
+      ctx.font = '14px "SolaimanLipi", sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(sl, 85, itemY + 27)
+
+      ctx.textAlign = 'left'
+      ctx.fillStyle = '#0f172a'
+      ctx.font = '14px "SolaimanLipi", sans-serif'
+      ctx.fillText(desc, 130, itemY + 27)
+
+      ctx.textAlign = 'right'
+      ctx.fillStyle = '#0c234a'
+      ctx.font = 'bold 15px "SolaimanLipi", sans-serif'
+      ctx.fillText(amt, 815, itemY + 27)
+
+      itemY += 42
+    })
+
+    // Total Amount Row
+    ctx.fillStyle = '#eff6ff'
+    ctx.fillRect(55, itemY, 790, 52)
+    ctx.strokeStyle = '#bfdbfe'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(55, itemY, 790, 52)
+
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#1e3a8a'
+    ctx.font = 'bold 16px "SolaimanLipi", sans-serif'
+    ctx.fillText('সর্বমোট পরিশোধিত অর্থ (Total Paid Amount):', 75, itemY + 33)
+
+    ctx.textAlign = 'right'
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 24px "SolaimanLipi", sans-serif'
+    ctx.fillText(`৳${totalFee.value}`, 815, itemY + 35)
+
+    // Payment Gateway & Transaction Details Container
+    const payBoxY = itemY + 70
+    ctx.fillStyle = '#f8fafc'
+    ctx.fillRect(55, payBoxY, 790, 110)
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.strokeRect(55, payBoxY, 790, 110)
+
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 15px "SolaimanLipi", sans-serif'
+    ctx.fillText('অনলাইন পেমেন্ট গেটওয়ে বিবরণ (Gateway Payment Details):', 75, payBoxY + 30)
+
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('পেমেন্ট মাধ্যম (Channel):', 75, payBoxY + 60)
+    ctx.fillStyle = '#0f172a'
+    ctx.font = 'bold 15px "SolaimanLipi", sans-serif'
+    ctx.fillText(`${form.paymentMethod} Online Gateway`, 245, payBoxY + 60)
+
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('ট্রানজেকশন আইডি (Trx ID):', 75, payBoxY + 90)
+    ctx.fillStyle = '#047857'
+    ctx.font = 'bold 16px monospace'
+    ctx.fillText(form.transactionId || 'TRX-PAID-SUCCESS', 245, payBoxY + 90)
+
+    // PAID Official Seal Stamp
+    ctx.save()
+    ctx.translate(690, payBoxY + 55)
+    ctx.rotate(-0.08)
+    ctx.strokeStyle = '#059669'
+    ctx.lineWidth = 3
+    ctx.strokeRect(-80, -32, 160, 64)
+    ctx.fillStyle = '#059669'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('PAID ✓', 0, 2)
+    ctx.font = 'bold 12px "SolaimanLipi", sans-serif'
+    ctx.fillText('পরিশোধিত', 0, 22)
+    ctx.restore()
+
+    // Signatures and Verification
+    const sigY = payBoxY + 180
+    ctx.strokeStyle = '#94a3b8'
+    ctx.lineWidth = 1
+
+    ctx.beginPath()
+    ctx.moveTo(75, sigY)
+    ctx.lineTo(260, sigY)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(600, sigY)
+    ctx.lineTo(815, sigY)
+    ctx.stroke()
+
+    ctx.textAlign = 'center'
+    ctx.fillStyle = '#64748b'
+    ctx.font = '13px "SolaimanLipi", sans-serif'
+    ctx.fillText('অর্থ প্রদানকারীর স্বাক্ষর', 167, sigY + 22)
+    ctx.fillText('অনুমোদিত হিসাব কর্মকর্তা / কোষাধ্যক্ষ', 707, sigY + 22)
+    ctx.fillStyle = '#0c234a'
+    ctx.font = 'bold 12px "SolaimanLipi", sans-serif'
+    ctx.fillText('কোয়ান্টাম কসমো স্কুল ও কলেজ রিইউনিয়ন কমিটি', 707, sigY + 40)
+
+    // Bottom Security Note
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '11px "SolaimanLipi", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('এটি একটি স্বয়ংক্রিয় ডিজিটাল মানি রিসিট। অনুষ্ঠানের প্রবেশ ও কিট সংগ্রহের সময় এই রিসিটটি প্রদর্শন করুন।', 450, 1205)
+
+    // Download trigger
+    const link = document.createElement('a')
+    link.download = `Money_Receipt_${form.quantaId || 'QCSC'}_${receiptNo}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  } catch (err) {
+    downloadTextMoneyReceipt()
   }
+}
 
-  // Fallback text receipt download
-  const textContent = `===========================================
-ঘরে ফেরা আনন্দ উৎসব ২০২৭ - কোয়ান্টা রিইউনিয়ন
+function downloadTextMoneyReceipt() {
+  const receiptNo = `MR-2027-${registrationRefNumber.value ? registrationRefNumber.value.replace(/[^0-9]/g, '') : '91823'}`
+  const textContent = `=======================================================
 কোয়ান্টাম কসমো স্কুল ও কলেজ
-১৬-১৭ ডিসেম্বর ২০২৬ • কোয়ান্টামম, লামা, বান্দরবান
-===========================================
-রেজিস্ট্রেশন রেফারেন্স নম্বর: ${registrationRefNumber.value}
-অংশগ্রহণকারীর নাম: ${form.fullName}
+QUANTUM COSMO SCHOOL & COLLEGE
+ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন)
+অফিসিয়াল মানি রিসিট • OFFICIAL MONEY RECEIPT
+=======================================================
+রিসিট নম্বর (Receipt No): ${receiptNo}
+রেফারেন্স নম্বর (Ref No): ${registrationRefNumber.value}
+তারিখ: ${new Date().toLocaleDateString('bn-BD')}
+
+অর্থ প্রদানকারী (Payer Details):
+-------------------------------------------------------
+নাম: ${form.fullName}
 কোয়ান্টা আইডি: ${form.quantaId}
 মোবাইল নম্বর: ${form.mobileNumber}
-ব্যাচ: ${form.batch || '-'}
-টি-শার্ট সাইজ ও জেন্ডার: ${form.tShirtSize} (${form.gender})
-স্পাউস (স্বামী/স্ত্রী): ${form.hasSpouse ? 'হ্যাঁ' : 'না'}
-সন্তান সংখ্যা: ${form.childrenCount} জন
-যাতায়াত ব্যবস্থা: ${selectedTransport.value.title}
-পেমেন্ট মাধ্যম: ${form.paymentMethod}
-ট্রানজেকশন নম্বর: ${form.transactionId}
-সর্বমোট ফি: ৳${totalFee.value}
-===========================================
-নিবন্ধন সফলভাবে সম্পন্ন ও জমা হয়েছে।
+ব্যাচ / পাসের বছর: ${form.batch || '-'}
+টি-শার্ট সাইজ ও জেন্ডার: ${form.tShirtSize} (${form.gender === 'male' ? 'পুরুষ' : 'মহিলা'})
+মোট অংশগ্রহণকারী: ${attendeeCount.value} জন (স্পাউস: ${form.hasSpouse ? 'হ্যাঁ' : 'না'}, সন্তান: ${form.childrenCount} জন)
+
+পেমেন্ট ও হিসাবের বিবরণ:
+-------------------------------------------------------
+১. উৎসব নিবন্ধন ফি: ৳${registrationFee}
+২. যাতায়াত ব্যবস্থা (${selectedTransport.value.title}): ${selectedTransport.value.feeText}
+৩. পরিবার সদস্য: অন্তর্ভুক্ত
+
+সর্বমোট পরিশোধিত অর্থ: ৳${totalFee.value}
+পেমেন্ট মাধ্যম: ${form.paymentMethod} Online Gateway
+ট্রানজেকশন আইডি (Trx ID): ${form.transactionId}
+পেমেন্ট স্ট্যাটাস: PAID / সম্পূর্ণ পরিশোধিত ✓
+=======================================================
+কোয়ান্টাম কসমো স্কুল ও কলেজ রিইউনিয়ন কমিটি
 `
   const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `reunion2027-${registrationRefNumber.value || 'slip'}.txt`
+  a.download = `Money_Receipt_${receiptNo}.txt`
   a.click()
   URL.revokeObjectURL(url)
 }
 
 function shareRegistrationInfo() {
   const url = window.location.href
-  const text = `🎉 ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন)\nআমার নিবন্ধন সফলভাবে সম্পন্ন হয়েছে!\n\n📋 রেফারেন্স: ${registrationRefNumber.value}\n👤 নাম: ${form.fullName}\n🆔 কোয়ান্টা আইডি: ${form.quantaId}\n🚌 যাতায়াত: ${selectedTransport.value.title}\n💳 সর্বমোট ফি: ৳${totalFee.value}\n\nআপনারাও কোয়ান্টামমে যোগ দিতে এখনই নিবন্ধন করুন: ${url}`
+  const receiptNo = `MR-2027-${registrationRefNumber.value ? registrationRefNumber.value.replace(/[^0-9]/g, '') : '91823'}`
+  const text = `🎉 ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন)\nআমার নিবন্ধন ও অনলাইন পেমেন্ট সম্পন্ন হয়েছে!\n\n🧾 মানি রিসিট নং: ${receiptNo}\n💳 পেমেন্ট মাধ্যম: ${form.paymentMethod}\n🔢 ট্রানজেকশন আইডি: ${form.transactionId}\n💰 পরিশোধিত ফি: ৳${totalFee.value}\n👤 নাম: ${form.fullName}\n🆔 কোয়ান্টা আইডি: ${form.quantaId}\n🚌 যাতায়াত: ${selectedTransport.value.title}\n\nআপনারাও দ্রুত নিবন্ধন করুন: ${url}`
 
   if (navigator.share) {
     navigator.share({
-      title: 'কোয়ান্টা রিইউনিয়ন ২০২৭ নিবন্ধন কনফার্মেশন',
+      title: 'কোয়ান্টা রিইউনিয়ন ২০২৭ পেমেন্ট ও নিবন্ধন রিসিট',
       text: text,
       url: url
     }).catch(() => {})
@@ -407,7 +580,7 @@ function shareRegistrationInfo() {
 
 function inviteAnother() {
   const url = window.location.href
-  const text = `আসসালামু আলাইকুম / আদাব! প্রিয় কোয়ান্টা,\nঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টাম কসমো স্কুল ও কলেজ রিইউনিয়ন)-এর আনুষ্ঠানিক অনলাইন রেজিস্ট্রেশন চলছে।\n\nতারিখ: ১৬-১৭ ডিসেম্বর ২০২৬\nস্থান: কোয়ান্টামম, লামা, বান্দরবান\n\nআপনিও দ্রুত এই লিংকে গিয়ে আপনার নিবন্ধন সম্পন্ন করুন:\n👉 ${url}`
+  const text = `আসসালামু আলাইকুম / আদাব! প্রিয় কোয়ান্টা,\nঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টাম কসমো স্কুল ও কলেজ রিইউনিয়ন)-এর অনলাইন রেজিস্ট্রেশন চলছে।\n\nতারিখ: ১৬-১৭ ডিসেম্বর ২০২৬\nস্থান: কোয়ান্টামম, লামা, বান্দরবান\n\nআপনিও দ্রুত এই লিংকে গিয়ে আপনার নিবন্ধন সম্পন্ন করুন:\n👉 ${url}`
 
   if (navigator.share) {
     navigator.share({
@@ -432,11 +605,12 @@ function startNewRegistration() {
   form.hasSpouse = false
   form.childrenCount = 0
   form.transportOption = 'self'
-  form.paymentMethod = 'bkash'
+  form.paymentMethod = 'bKash'
   form.transactionId = ''
 
   registrationRefNumber.value = ''
   isComplete.value = false
+  showPaymentModal.value = false
 
   try {
     localStorage.removeItem('reunion2027_registered')
@@ -446,6 +620,24 @@ function startNewRegistration() {
 
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem('reunion2027_registered')
+    if (saved) {
+      const data = JSON.parse(saved)
+      if (data && data.ref) {
+        registrationRefNumber.value = data.ref
+        if (data.form) {
+          Object.assign(form, data.form)
+        }
+        isComplete.value = true
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+})
 </script>
 
 <template>
@@ -474,21 +666,26 @@ function startNewRegistration() {
             your registration has been successfully submitted
           </p>
 
-          <!-- Core Call Notification Notice -->
-          <div class="mt-6 rounded-2xl bg-blue-50/80 p-4 sm:p-5 text-left border border-blue-200">
+          <!-- Core Payment & Confirmation Notice -->
+          <div class="mt-6 rounded-2xl bg-emerald-50/90 p-4 sm:p-5 text-left border border-emerald-200">
             <div class="flex items-start gap-3.5 sm:gap-4">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-700 text-white">
-                <Phone class="size-5.5" />
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                <CheckCircle2 class="size-6" />
               </div>
               <div class="min-w-0">
-                <h3 class="text-base sm:text-lg font-bold text-blue-950">
-                  পেমেন্ট প্রাপ্তি নিশ্চিতে আমাদের টিম আপনাকে কল করবে
-                </h3>
-                <p class="mt-1 text-sm sm:text-base font-normal text-blue-900 leading-relaxed">
-                  আমাদের প্রতিনিধি অতি শীঘ্রই আপনার প্রদত্ত নম্বরে (<strong class="font-bold text-blue-950">{{ form.mobileNumber }}</strong>) কল করে আপনার পেমেন্ট প্রাপ্তি নিশ্চিত করবেন।
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-bold text-emerald-950">
+                    পেমেন্ট ও নিবন্ধন সফলভাবে সম্পন্ন হয়েছে
+                  </h3>
+                  <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                    PAID ✓
+                  </span>
+                </div>
+                <p class="mt-1 text-sm sm:text-base font-normal text-emerald-900 leading-relaxed">
+                  আপনার অনলাইন পেমেন্ট সফলভাবে গৃহীত হয়েছে। অনলাইন গেটওয়ে ট্রানজেকশন আইডি: <strong class="font-mono font-bold text-emerald-950">{{ form.transactionId }}</strong>।
                 </p>
-                <p class="mt-2 text-xs sm:text-sm text-blue-700 font-medium">
-                  our team will inform you by call to confirm your payment has been received as soon as possible.
+                <p class="mt-1.5 text-xs sm:text-sm text-emerald-700 font-medium">
+                  আপনার অফিসিয়াল মানি রিসিট প্রস্তুত রয়েছে। নিচের 'মানি রিসিট ডাউনলোড' বাটনে চাপ দিয়ে রিসিটটি সংরক্ষণ করুন।
                 </p>
               </div>
             </div>
@@ -496,7 +693,14 @@ function startNewRegistration() {
 
           <!-- Submission Details Summary -->
           <div class="mt-6 rounded-2xl bg-slate-50 p-4 sm:p-5 text-left border border-slate-200">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-200">
+              <span class="text-xs sm:text-sm font-semibold text-slate-600">মানি রিসিট নম্বর (receipt no.)</span>
+              <span class="font-mono text-sm sm:text-base font-bold text-emerald-700">
+                MR-2027-{{ registrationRefNumber ? registrationRefNumber.replace(/[^0-9]/g, '') : '91823' }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between py-2.5 border-b border-slate-200">
               <span class="text-xs sm:text-sm font-semibold text-slate-600">রেজিস্ট্রেশন রেফারেন্স নম্বর (ref no.)</span>
               <span class="font-mono text-sm sm:text-base font-bold text-blue-900">{{ registrationRefNumber }}</span>
             </div>
@@ -516,7 +720,7 @@ function startNewRegistration() {
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-slate-600 font-medium">টি-শার্ট সাইজ ও জেন্ডার:</span>
-                <span class="font-semibold text-slate-800">{{ form.tShirtSize }} • {{ form.gender }}</span>
+                <span class="font-semibold text-slate-800">{{ form.tShirtSize }} • {{ form.gender === 'male' ? 'পুরুষ' : 'মহিলা' }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-slate-600 font-medium">Spouse (স্বামী/স্ত্রী):</span>
@@ -542,25 +746,31 @@ function startNewRegistration() {
               </div>
               <div v-if="form.transactionId" class="flex items-center justify-between">
                 <span class="text-slate-600 font-medium">ট্রানজেকশন আইডি:</span>
-                <span class="font-mono font-semibold text-blue-900">{{ form.transactionId }}</span>
+                <span class="font-mono font-semibold text-emerald-800">{{ form.transactionId }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">পেমেন্ট স্ট্যাটাস:</span>
+                <span class="inline-flex items-center gap-1 font-bold text-emerald-700 text-xs sm:text-sm bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <CheckCircle2 class="size-3.5" /> পরিশোধিত (PAID)
+                </span>
               </div>
               <div class="flex items-center justify-between border-t border-slate-200 pt-2.5">
-                <span class="font-bold text-slate-800">সর্বমোট প্রদেয় ফি:</span>
+                <span class="font-bold text-slate-800">সর্বমোট পরিশোধিত অর্থ:</span>
                 <span class="text-base font-extrabold text-blue-900">৳{{ totalFee }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Action Buttons Grid (Download Slip, Share Info, Invite Another) -->
+          <!-- Action Buttons Grid (Download Money Receipt, Share Info, Invite Another) -->
           <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <!-- 1. Download Registration Info -->
+            <!-- 1. Download Money Receipt -->
             <button
               type="button"
-              class="flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-xs sm:text-sm font-bold text-white transition hover:bg-blue-800 active:scale-95 min-h-[48px] shadow-xs"
-              @click="downloadRegistrationSlip"
+              class="flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-xs sm:text-sm font-bold text-white transition hover:bg-blue-800 active:scale-95 min-h-[48px] shadow-sm"
+              @click="downloadMoneyReceipt"
             >
-              <Download class="size-4.5 text-blue-200 shrink-0" />
-              <span>তথ্য ডাউনলোড</span>
+              <Receipt class="size-4.5 text-blue-200 shrink-0" />
+              <span>মানি রিসিট ডাউনলোড</span>
             </button>
 
             <!-- 2. Share Registration Info -->
@@ -641,11 +851,11 @@ function startNewRegistration() {
               </div>
               
               <h1 class="text-2xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl sm:leading-tight">
-                ঘরে ফেরা আনন্দ উৎসব ২০২৭
+                ঘরে ফেরা আনন্দ উৎসব ২০২৬
               </h1>
 
               <p class="mt-2.5 text-sm sm:text-base leading-relaxed text-blue-100/90">
-                পাহাড়ের কোল ঘেঁষা প্রিয় ক্যাম্পাস কোয়ান্টামমে আবারও একত্রিত হওয়ার মহোৎসব। প্রাক্তন সকল শিক্ষার্থীর জন্য আনুষ্ঠানিক অনলাইন রেজিস্ট্রেশন ফরম।
+                পাহাড়ের কোল ঘেঁষা প্রিয় ক্যাম্পাস কোয়ান্টামমে আবারও একত্রিত হওয়ার মহোৎসব।
               </p>
 
               <!-- Event Highlights in One Row (Mobile & Desktop) -->
@@ -669,13 +879,53 @@ function startNewRegistration() {
           </div>
         </section>
 
+        <!-- Sample Data Quick Fill Banner -->
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-amber-50 via-blue-50 to-indigo-50 p-3.5 sm:px-5 border border-amber-200/80 shadow-xs">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-xs">
+              <Sparkles class="size-5" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-xs sm:text-sm font-bold text-[#0c234a]">
+                দ্রুত টেস্ট করতে চান? (Quick Demo Test)
+              </p>
+              <p class="text-[11px] sm:text-xs text-slate-600 truncate sm:whitespace-normal">
+                এক ক্লিকে নমুনা/ডেমো তথ্য দিয়ে পুরো ফরম পূরণ করে সরাসরি পেমেন্ট গেটওয়ে পরীক্ষা করুন।
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 px-4 py-2 text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer shrink-0"
+            @click="fillSampleData"
+          >
+            <Sparkles class="size-4 text-slate-950" />
+            <span>নমুনা তথ্য পূরণ করুন</span>
+          </button>
+        </div>
+
+        <!-- Sample Data Filled Alert -->
+        <div
+          v-if="sampleDataFilled"
+          class="mb-5 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-xs sm:text-sm font-semibold text-emerald-900 border border-emerald-200 shadow-xs transition"
+        >
+          <span class="flex items-center gap-2">
+            <CheckCircle2 class="size-4.5 text-emerald-600 shrink-0" />
+            নমুনা তথ্য সফলভাবে পূরণ করা হয়েছে! এখন সাইডবারের "পেমেন্টে এগিয়ে যান" বাটনে ক্লিক করে গেটওয়ে পরীক্ষা করুন।
+          </span>
+          <button type="button" class="text-emerald-700 hover:text-emerald-900 ml-2" @click="sampleDataFilled = false">
+            <X class="size-4" />
+          </button>
+        </div>
+
         <!-- Main Form Grid with Sticky Sidebar -->
-        <form class="grid items-start gap-6 lg:grid-cols-[1fr_350px] xl:grid-cols-[1fr_380px]" @submit.prevent="completeRegistration">
+        <form class="grid items-start gap-6 lg:grid-cols-[1fr_350px] xl:grid-cols-[1fr_380px]" @submit.prevent="openPaymentGateway">
           <div class="space-y-6">
 
             <!-- STEP 1: PERSONAL INFORMATION -->
             <section class="rounded-2xl bg-white p-5 sm:p-7">
-              <div class="mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="mb-5 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-3">
                   <div class="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
                     <User class="size-4.5" />
@@ -686,6 +936,17 @@ function startNewRegistration() {
                     </h2>
                   </div>
                 </div>
+
+                <!-- Step 1 Header Sample Data Quick Fill Button -->
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 px-3 py-1.5 text-xs font-bold transition shadow-2xs active:scale-95 cursor-pointer"
+                  @click="fillSampleData"
+                  title="দ্রুত টেস্ট করার জন্য ডেমো তথ্য পূরণ করুন"
+                >
+                  <Sparkles class="size-3.5 text-amber-600" />
+                  <span>নমুনা তথ্য পূরণ করুন</span>
+                </button>
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
@@ -1071,172 +1332,14 @@ function startNewRegistration() {
                 </label>
               </div>
             </section>
-
-
-            <!-- STEP 3: PAYMENT DETAILS -->
-            <section class="rounded-2xl bg-white p-5 sm:p-7">
-              <div class="mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
-                <div class="flex items-center gap-3">
-                  <div class="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                    <CreditCard class="size-4.5" />
-                  </div>
-                  <div>
-                    <h2 class="text-base sm:text-lg font-bold text-[#0c234a]">
-                      Payment Details
-                    </h2>
-                    <p class="text-xs sm:text-sm text-slate-600">Bkash, Nagad, Rocket, Bank Transfer or Cash</p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs sm:text-sm text-slate-500">মোট প্রদেয়:</span>
-                  <span class="ml-1 text-base sm:text-lg font-bold text-blue-800">৳{{ totalFee }}</span>
-                </div>
-              </div>
-
-              <!-- Payment Method Selector -->
-              <div>
-                <label class="mb-2.5 block text-sm font-semibold text-slate-800">
-                  Select Payment Method <span class="text-rose-500">*</span>
-                </label>
-                <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                  <button
-                    v-for="(pm, idx) in paymentMethods"
-                    :key="pm.id"
-                    type="button"
-                    class="relative flex min-h-[76px] flex-col items-center justify-center rounded-xl border p-2 text-center transition"
-                    :class="[
-                      form.paymentMethod === pm.id ? pm.activeBg + ' font-bold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
-                      idx === 4 ? 'col-span-2 sm:col-span-1' : ''
-                    ]"
-                    @click="form.paymentMethod = pm.id"
-                  >
-                    <!-- Brand Icon Graphic -->
-                    <div class="mb-1 flex size-8 items-center justify-center">
-                      <!-- bKash Origami Bird SVG -->
-                      <svg v-if="pm.id === 'bkash'" viewBox="0 0 100 100" class="size-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 48L42 16L72 48L52 88L32 72L12 48Z" fill="#E2136E"/>
-                        <path d="M42 16L82 28L72 48L42 16Z" fill="#D12053"/>
-                        <path d="M72 48L92 42L78 64L72 48Z" fill="#B31A45"/>
-                        <path d="M52 88L68 96L78 64L52 88Z" fill="#E2136E"/>
-                      </svg>
-
-                      <!-- Nagad Swirl/Flame SVG -->
-                      <svg v-else-if="pm.id === 'nagad'" viewBox="0 0 100 100" class="size-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="44" fill="#FFF2E8"/>
-                        <path d="M50 16C36 28 32 44 38 56C42 64 50 68 56 64C64 60 66 48 58 40C52 34 50 26 50 16Z" fill="#F7941D"/>
-                        <path d="M54 36C48 42 46 52 50 58C54 62 60 62 64 58C68 54 68 46 62 42C58 38 56 34 54 36Z" fill="#ED1C24"/>
-                      </svg>
-
-                      <!-- Rocket DBBL Flyer SVG -->
-                      <svg v-else-if="pm.id === 'rocket'" viewBox="0 0 100 100" class="size-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="44" fill="#F6EBF8"/>
-                        <path d="M50 14L66 44H34L50 14Z" fill="#8C3494"/>
-                        <path d="M34 44H66V68C66 74 60 80 50 82C40 80 34 74 34 68V44Z" fill="#75227C"/>
-                        <circle cx="50" cy="54" r="7" fill="#FFFFFF"/>
-                        <path d="M42 82L50 94L58 82H42Z" fill="#ED1C24"/>
-                      </svg>
-
-                      <!-- Bank Transfer Building SVG -->
-                      <svg v-else-if="pm.id === 'bank'" viewBox="0 0 100 100" class="size-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="44" fill="#EFF6FF"/>
-                        <path d="M50 18L18 34V40H82V34L50 18Z" fill="#1D4ED8"/>
-                        <rect x="24" y="44" width="8" height="28" rx="2" fill="#2563EB"/>
-                        <rect x="38" y="44" width="8" height="28" rx="2" fill="#2563EB"/>
-                        <rect x="54" y="44" width="8" height="28" rx="2" fill="#2563EB"/>
-                        <rect x="68" y="44" width="8" height="28" rx="2" fill="#2563EB"/>
-                        <rect x="16" y="74" width="68" height="8" rx="2" fill="#1D4ED8"/>
-                      </svg>
-
-                      <!-- Cash / Spot Banknote SVG -->
-                      <svg v-else viewBox="0 0 100 100" class="size-8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="44" fill="#ECFDF5"/>
-                        <rect x="16" y="26" width="68" height="42" rx="6" fill="#059669"/>
-                        <rect x="22" y="32" width="56" height="30" rx="4" stroke="#A7F3D0" stroke-width="2"/>
-                        <circle cx="50" cy="47" r="8" fill="#A7F3D0"/>
-                        <path d="M30 68L70 68L80 76L20 76L30 68Z" fill="#047857"/>
-                      </svg>
-                    </div>
-
-                    <span class="text-sm font-bold leading-tight">{{ pm.name }}</span>
-                    <span class="text-xs text-slate-500">{{ pm.bnName }}</span>
-
-                    <!-- Checked indicator -->
-                    <span
-                      v-if="form.paymentMethod === pm.id"
-                      class="absolute -top-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-blue-700 text-xs text-white"
-                    >
-                      ✓
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Dynamic Instruction Box -->
-              <div class="mt-4 rounded-xl bg-blue-50/60 p-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span class="text-sm font-bold text-blue-900">
-                      {{ selectedPaymentConfig.name }} পেমেন্ট সংক্রান্ত তথ্য
-                    </span>
-                    <div class="mt-1 flex flex-wrap items-center gap-2.5">
-                      <span class="font-mono text-lg sm:text-xl font-bold text-blue-950">
-                        {{ selectedPaymentConfig.number }}
-                      </span>
-                      <span class="rounded bg-blue-100 px-2.5 py-0.5 text-xs text-blue-800 font-semibold">
-                        {{ selectedPaymentConfig.type }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    v-if="form.paymentMethod !== 'cash'"
-                    type="button"
-                    class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-blue-800 transition hover:bg-blue-100 active:scale-95 border border-slate-200 w-full sm:w-auto"
-                    @click="copyPaymentNumber(selectedPaymentConfig.number)"
-                  >
-                    <Check v-if="copied" class="size-4 text-emerald-600" />
-                    <Copy v-else class="size-4" />
-                    <span>{{ copied ? 'কপি হয়েছে! ✓' : 'নম্বর কপি করুন' }}</span>
-                  </button>
-                </div>
-
-                <div class="mt-3 flex items-start gap-2 border-t border-slate-200/60 pt-2.5 text-xs sm:text-sm text-slate-700 leading-relaxed">
-                  <Info class="size-4.5 shrink-0 text-blue-700 mt-0.5" />
-                  <p>
-                    <strong class="text-blue-950">নির্দেশনা:</strong> {{ selectedPaymentConfig.instructions }} মোট প্রদেয় পরিমাণ <strong>৳{{ totalFee }}</strong> টাকা। ফি পাঠানোর পর নিচের ঘরে ট্রানজেকশন নম্বর (Transaction Number) দিন।
-                  </p>
-                </div>
-              </div>
-
-              <!-- Transaction Number Only -->
-              <div class="mt-4">
-                <label class="mb-1.5 block text-sm font-semibold text-slate-800">
-                  Transaction Number <span class="text-rose-500">*</span>
-                </label>
-                <div class="relative">
-                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-indigo-600">
-                    <CreditCard class="size-4.5" />
-                  </div>
-                  <input
-                    v-model.trim="form.transactionId"
-                    type="text"
-                    required
-                    class="block w-full min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/60 py-3 pl-11 pr-4 text-base sm:text-sm font-mono text-[#0f2747] placeholder-slate-400 transition focus:border-blue-600 focus:bg-white focus:outline-none"
-                  />
-                </div>
-                <p class="mt-1 text-xs text-slate-500">
-                  পেমেন্ট সম্পন্ন করার পর প্রাপ্ত ট্রানজেকশন নম্বর বা আইডিটি এখানে লিখুন।
-                </p>
-              </div>
-            </section>
           </div>
 
-          <!-- SIDEBAR: REGISTRATION SUMMARY & SUBMISSION -->
+          <!-- SIDEBAR: REGISTRATION SUMMARY & PAYMENT -->
           <aside class="space-y-4 lg:sticky lg:top-6">
-            <div class="rounded-2xl bg-white p-5 border border-slate-200/60">
+            <div class="rounded-2xl bg-white p-5 border border-slate-200/60 shadow-xs">
               <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <span class="inline-flex items-center gap-1.5 text-sm sm:text-base font-bold text-blue-950">
-                  <CreditCard class="size-4.5 text-blue-700" />Registration Summary
+                  <CreditCard class="size-4.5 text-blue-700" />হিসাব বিবরণী (Summary)
                 </span>
                 <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                   নিবন্ধন ফি ৳১০০
@@ -1288,21 +1391,19 @@ function startNewRegistration() {
                 </div>
               </div>
 
-              <!-- Submit Button -->
+              <!-- Proceed to Payment Button -->
               <button
                 type="submit"
-                :disabled="isSubmitting"
-                class="mt-4 flex w-full min-h-[50px] items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-center text-sm sm:text-base font-bold text-white transition hover:bg-blue-800 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                class="mt-4 flex w-full min-h-[50px] items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-center text-sm sm:text-base font-bold text-white transition hover:bg-blue-800 active:scale-[0.99] shadow-md"
               >
-                <span>{{ isSubmitting ? 'Processing...' : 'Complete Registration' }}</span>
+                <CreditCard class="size-4.5 text-blue-200" />
+                <span>পেমেন্টে এগিয়ে যান (Pay ৳{{ totalFee }})</span>
                 <ArrowRight class="size-4.5" />
               </button>
 
-              <div class="mt-3 flex items-start gap-2 rounded-lg bg-blue-50/70 p-2.5 text-xs text-blue-900">
-                <Info class="size-4 shrink-0 text-blue-700 mt-0.5" />
-                <p>
-                  ফরমটি জমা দেওয়ার পর আমাদের টিম অতি দ্রুত কল করে পেমেন্ট প্রাপ্তি নিশ্চিত করবেন।
-                </p>
+              <div class="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                <Lock class="size-3.5 text-emerald-600" />
+                <span>নিরাপদ পেমেন্ট গেটওয়ে (bKash, Nagad, Cards)</span>
               </div>
             </div>
 
@@ -1325,6 +1426,285 @@ function startNewRegistration() {
             </div>
           </aside>
         </form>
+
+        <!-- DUMMY PAYMENT GATEWAY MODAL -->
+        <Teleport to="body">
+          <div
+            v-if="showPaymentModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-xs transition-opacity"
+            @click.self="closePaymentGateway"
+          >
+            <div class="relative w-full max-w-md rounded-2xl sm:rounded-3xl bg-white shadow-2xl overflow-hidden border border-slate-200">
+              
+              <!-- Gateway Header -->
+              <div class="bg-gradient-to-r from-[#061836] to-[#0c234a] p-4 text-white">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <div class="size-8 rounded-full bg-white p-1 overflow-hidden shrink-0">
+                      <img :src="quantumLogo" alt="Logo" class="size-full object-contain" />
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-bold leading-tight">QCSC Payment Gateway</h3>
+                      <p class="text-[11px] text-blue-200">কোয়ান্টা রিইউনিয়ন ২০২৭</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-400/30">
+                      <Lock class="size-3" /> SSL 256-Bit
+                    </span>
+                    <button
+                      type="button"
+                      :disabled="gatewayStep === 'processing'"
+                      class="text-slate-300 hover:text-white transition disabled:opacity-40"
+                      @click="closePaymentGateway"
+                    >
+                      <X class="size-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Invoice Amount Pill -->
+                <div class="mt-3.5 flex items-baseline justify-between rounded-xl bg-white/10 px-3.5 py-2.5 border border-white/15">
+                  <div>
+                    <span class="text-[11px] text-blue-200 block">প্রদেয় সর্বমোট ফি (Payable Total)</span>
+                    <span class="text-xs font-medium text-white truncate max-w-[180px] block">{{ form.fullName }}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-2xl font-black text-amber-300">৳{{ totalFee }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gateway Processing View -->
+              <div v-if="gatewayStep === 'processing'" class="p-8 text-center space-y-4">
+                <div class="mx-auto size-16 flex items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  <div class="size-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div>
+                  <h4 class="text-base font-bold text-slate-800">নিরাপদ পেমেন্ট প্রসেসিং হচ্ছে...</h4>
+                  <p class="mt-1 text-xs text-slate-500">
+                    {{ gatewayChannel === 'bkash' ? 'bKash' : gatewayChannel === 'nagad' ? 'Nagad' : 'Secure' }} গেটওয়ের সাথে এনক্রিপ্টেড সংযোগ স্থাপন করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।
+                  </p>
+                </div>
+                <div class="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 rounded-full">
+                  <ShieldCheck class="size-3.5" /> 100% Secure Transaction
+                </div>
+              </div>
+
+              <!-- Gateway Success View -->
+              <div v-else-if="gatewayStep === 'success'" class="p-8 text-center space-y-3">
+                <div class="mx-auto size-16 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                  <CheckCircle2 class="size-10 text-emerald-600" />
+                </div>
+                <div>
+                  <h4 class="text-lg font-bold text-emerald-800">পেমেন্ট সফল হয়েছে!</h4>
+                  <p class="mt-1 font-mono text-xs text-slate-600">
+                    Trx ID: <strong class="text-slate-900">{{ form.transactionId }}</strong>
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-500">
+                    নিবন্ধন সফলভাবে সম্পন্ন হয়েছে, অপেক্ষা করুন...
+                  </p>
+                </div>
+              </div>
+
+              <!-- Gateway Form View -->
+              <div v-else class="p-4 sm:p-5">
+                <!-- Channel Selector Tabs -->
+                <div class="mb-4">
+                  <label class="block text-xs font-bold text-slate-700 mb-2">পেমেন্ট মাধ্যম বেছে নিন (Select Channel):</label>
+                  <div class="grid grid-cols-4 gap-2">
+                    <button
+                      v-for="ch in gatewayChannels"
+                      :key="ch.id"
+                      type="button"
+                      class="flex flex-col items-center justify-center rounded-xl border p-2 text-center transition"
+                      :class="gatewayChannel === ch.id ? 'border-blue-600 bg-blue-50 font-bold text-blue-900 shadow-xs ring-1 ring-blue-600/30' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+                      @click="gatewayChannel = ch.id"
+                    >
+                      <span class="text-xs font-extrabold" :style="{ color: ch.color }">{{ ch.name }}</span>
+                      <span class="text-[10px] text-slate-500">{{ ch.bnName }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Selected Channel Dynamic UI -->
+                <!-- 1. bKash Form -->
+                <div v-if="gatewayChannel === 'bkash'" class="rounded-xl border border-pink-200 bg-pink-50/50 p-4 space-y-3">
+                  <div class="flex items-center justify-between pb-2 border-b border-pink-200/60">
+                    <div class="flex items-center gap-2">
+                      <span class="font-extrabold text-sm text-[#E2136E]">bKash Checkout</span>
+                    </div>
+                    <span class="text-xs font-bold text-[#E2136E]">৳{{ totalFee }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      বিকাশ অ্যাকাউন্ট নম্বর (bKash Account No.)
+                    </label>
+                    <input
+                      v-model="gatewayAccount"
+                      type="tel"
+                      placeholder="01XXXXXXXXX"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-[#E2136E] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      বিকাশ পিন নম্বর (Demo PIN)
+                    </label>
+                    <input
+                      v-model="gatewayPin"
+                      type="password"
+                      placeholder="••••"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-[#E2136E] focus:outline-none"
+                    />
+                  </div>
+
+                  <label class="flex items-center gap-2 cursor-pointer select-none text-[11px] text-slate-600">
+                    <input type="checkbox" v-model="gatewayAgree" class="rounded text-[#E2136E]" />
+                    <span>আমি বিকাশ পেমেন্ট শর্তাবলীতে সম্মতি জানাচ্ছি</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#E2136E] hover:bg-[#c2105e] text-white py-2.5 font-bold text-sm transition active:scale-95 shadow-sm"
+                    @click="submitGatewayPayment"
+                  >
+                    <span>Confirm & Pay ৳{{ totalFee }}</span>
+                  </button>
+                </div>
+
+                <!-- 2. Nagad Form -->
+                <div v-else-if="gatewayChannel === 'nagad'" class="rounded-xl border border-orange-200 bg-orange-50/50 p-4 space-y-3">
+                  <div class="flex items-center justify-between pb-2 border-b border-orange-200/60">
+                    <span class="font-extrabold text-sm text-[#F7941D]">Nagad Payment</span>
+                    <span class="text-xs font-bold text-[#F7941D]">৳{{ totalFee }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      নগদ অ্যাকাউন্ট নম্বর (Nagad Account No.)
+                    </label>
+                    <input
+                      v-model="gatewayAccount"
+                      type="tel"
+                      placeholder="01XXXXXXXXX"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-[#F7941D] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      নগদ পিন (Demo PIN)
+                    </label>
+                    <input
+                      v-model="gatewayPin"
+                      type="password"
+                      placeholder="••••"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-[#F7941D] focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#F7941D] hover:bg-[#df7d11] text-white py-2.5 font-bold text-sm transition active:scale-95 shadow-sm"
+                    @click="submitGatewayPayment"
+                  >
+                    <span>Confirm & Pay ৳{{ totalFee }}</span>
+                  </button>
+                </div>
+
+                <!-- 3. Rocket Form -->
+                <div v-else-if="gatewayChannel === 'rocket'" class="rounded-xl border border-purple-200 bg-purple-50/50 p-4 space-y-3">
+                  <div class="flex items-center justify-between pb-2 border-b border-purple-200/60">
+                    <span class="font-extrabold text-sm text-[#8C3494]">DBBL Rocket</span>
+                    <span class="text-xs font-bold text-[#8C3494]">৳{{ totalFee }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      রকেট মোবাইল অ্যাকাউন্ট নম্বর (12 digits)
+                    </label>
+                    <input
+                      v-model="gatewayAccount"
+                      type="tel"
+                      placeholder="01XXXXXXXXXX"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-[#8C3494] focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-[#8C3494] hover:bg-[#742b7b] text-white py-2.5 font-bold text-sm transition active:scale-95 shadow-sm"
+                    @click="submitGatewayPayment"
+                  >
+                    <span>Confirm & Pay ৳{{ totalFee }}</span>
+                  </button>
+                </div>
+
+                <!-- 4. Card Form -->
+                <div v-else class="rounded-xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                  <div class="flex items-center justify-between pb-2 border-b border-blue-200/60">
+                    <span class="font-extrabold text-sm text-blue-900">Visa / Mastercard / Amex</span>
+                    <span class="text-xs font-bold text-blue-900">৳{{ totalFee }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">কার্ড নম্বর (Demo Card No.)</label>
+                    <input
+                      type="text"
+                      placeholder="4111 2222 3333 4444"
+                      value="4111 2222 3333 4444"
+                      class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-blue-600 focus:outline-none"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-700 mb-1">মেয়াদ (MM/YY)</label>
+                      <input
+                        type="text"
+                        placeholder="12/28"
+                        value="12/28"
+                        class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-blue-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-700 mb-1">সিভিভি (CVV)</label>
+                      <input
+                        type="password"
+                        placeholder="123"
+                        value="123"
+                        class="block w-full min-h-[42px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-mono text-slate-800 focus:border-blue-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white py-2.5 font-bold text-sm transition active:scale-95 shadow-sm"
+                    @click="submitGatewayPayment"
+                  >
+                    <Lock class="size-3.5" />
+                    <span>Pay Securely ৳{{ totalFee }}</span>
+                  </button>
+                </div>
+
+                <div class="mt-3 text-center">
+                  <button
+                    type="button"
+                    class="text-xs text-slate-500 hover:text-slate-800 underline"
+                    @click="closePaymentGateway"
+                  >
+                    পেমেন্ট বাতিল করুন (Cancel & Return)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Teleport>
 
       </template>
     </div>
