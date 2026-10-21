@@ -9,7 +9,7 @@ import {
   Calendar,
   Copy,
   Plus,
-  Trash2,
+  Minus,
   CreditCard,
   Shirt,
   Building2,
@@ -19,6 +19,9 @@ import {
   PartyPopper,
   Users,
   Heart,
+  Baby,
+  Bus,
+  Car,
   Info,
   ShieldCheck,
   Ticket,
@@ -27,10 +30,7 @@ import {
   HelpCircle,
   GraduationCap,
   ChevronDown,
-  UserPlus,
-  Smile,
-  Handshake,
-  UtensilsCrossed
+  UserPlus
 } from '@lucide/vue'
 import quantumLogo from './quantum-logo.png'
 
@@ -39,8 +39,6 @@ const isComplete = ref(false)
 const isSubmitting = ref(false)
 const copied = ref(false)
 const registrationRefNumber = ref('')
-
-let nextGuestId = 1
 
 const tShirtSizes = [
   { code: 'M', label: 'M (27")', length: '27"' },
@@ -70,46 +68,37 @@ const paymentMethods = [
     brandColor: '#F7941D',
     activeBg: 'bg-orange-50 border-orange-500',
     instructions: 'নগদ অ্যাপ বা *167# ডায়াল করে send money করুন।'
-  },
-  {
-    id: 'rocket',
-    name: 'rocket',
-    bnName: 'রকেট',
-    number: '01912-345678-9',
-    type: 'send money',
-    brandColor: '#8C3494',
-    activeBg: 'bg-purple-50 border-purple-500',
-    instructions: 'রকেট অ্যাপ বা *322# ডায়াল করে send money করুন।'
-  },
-  {
-    id: 'bank',
-    name: 'bank transfer',
-    bnName: 'ব্যাংক ট্রান্সফার',
-    number: 'a/c: 123-456-78901 (city bank)',
-    type: 'fund transfer',
-    brandColor: '#1D4ED8',
-    activeBg: 'bg-blue-50 border-blue-600',
-    instructions: 'ব্যাংক একাউন্টে ফান্ড ট্রান্সফার (fund transfer) সম্পন্ন করে ট্রানজেকশন নম্বরটি লিখুন।'
-  },
-  {
-    id: 'cash',
-    name: 'cash / spot',
-    bnName: 'স্পট পেমেন্ট',
-    number: 'কোয়ান্টামম রেজিস্ট্রেশন বুথ',
-    type: 'pay at entrance counter',
-    brandColor: '#059669',
-    activeBg: 'bg-emerald-50 border-emerald-600',
-    instructions: 'অনুষ্ঠানের দিন কোয়ান্টামম এন্ট্রি বুথে সরাসরি ক্যাশ প্রদান করবেন (ট্রানজেকশন নম্বরে cash লিখুন)।'
   }
 ]
 
-const relations = [
-  { code: 'spouse', label: 'স্বামী / স্ত্রী (spouse)', icon: 'heart' },
-  { code: 'child', label: 'সন্তান (child)', icon: 'smile' },
-  { code: 'parent', label: 'বাবা / মা (parent)', icon: 'users' },
-  { code: 'sibling', label: 'ভাই / বোন (sibling)', icon: 'userplus' },
-  { code: 'friend', label: 'সহপাঠী / বন্ধু (friend)', icon: 'handshake' },
-  { code: 'other', label: 'অন্যান্য (other)', icon: 'user' }
+const transportOptions = [
+  {
+    id: 'self',
+    title: 'নিজ দ্বায়িত্বে',
+    englishTitle: 'Self Arrangement',
+    fee: 0,
+    feeText: '০ টাকা',
+    badge: '০ টাকা',
+    description: 'নিজস্ব ব্যবস্থাপনায় কোয়ান্টামমে যাওয়া-আসা করবেন'
+  },
+  {
+    id: 'dhaka',
+    title: 'ঢাকা টিমের সাথে যাওয়া আসা (৫০০টাকা)',
+    englishTitle: 'Round trip with Dhaka Team (500 TK)',
+    fee: 500,
+    feeText: '৫০০ টাকা',
+    badge: '৳৫০০',
+    description: 'ঢাকা থেকে কোয়ান্টামমে যাওয়া-আসা ও দলগত সমন্বয়'
+  },
+  {
+    id: 'chattogram',
+    title: 'চট্টগ্রাম টিমের সাথে যাওয়া আসা (২৫০টাকা)',
+    englishTitle: 'Round trip with Chattogram Team (250 TK)',
+    fee: 250,
+    feeText: '২৫০ টাকা',
+    badge: '৳২৫০',
+    description: 'চট্টগ্রাম থেকে কোয়ান্টামমে যাওয়া-আসা ও দলগত সমন্বয়'
+  }
 ]
 
 const form = reactive({
@@ -121,13 +110,30 @@ const form = reactive({
   institution: '',
   batch: '',
   tShirtSize: 'L',
-  guests: [],
+  hasSpouse: false,
+  childrenCount: 0,
+  transportOption: 'self',
   paymentMethod: 'bkash',
   transactionId: '',
 })
 
-const attendeeCount = computed(() => form.guests.length + 1)
-const totalFee = computed(() => registrationFee)
+const selectedTransport = computed(() => {
+  return transportOptions.find((t) => t.id === form.transportOption) || transportOptions[0]
+})
+
+const attendeeCount = computed(() => {
+  let count = 1
+  if (form.hasSpouse) count += 1
+  const children = parseInt(form.childrenCount, 10)
+  if (!isNaN(children) && children > 0) {
+    count += children
+  }
+  return count
+})
+
+const totalFee = computed(() => {
+  return registrationFee + selectedTransport.value.fee
+})
 
 const selectedPaymentConfig = computed(() => {
   return paymentMethods.find((p) => p.id === form.paymentMethod) || paymentMethods[0]
@@ -137,19 +143,16 @@ const isMobileValid = computed(() => {
   return /^01[3-9]\d{8}$/.test(form.mobileNumber.replace(/\D/g, ''))
 })
 
-function addGuest() {
-  form.guests.push({
-    id: nextGuestId++,
-    name: '',
-    number: '',
-    gender: 'male',
-    relation: 'friend',
-    tShirtSize: 'L'
-  })
+function incrementChildren() {
+  const current = parseInt(form.childrenCount, 10) || 0
+  form.childrenCount = current + 1
 }
 
-function removeGuest(id) {
-  form.guests = form.guests.filter((guest) => guest.id !== id)
+function decrementChildren() {
+  const current = parseInt(form.childrenCount, 10) || 0
+  if (current > 0) {
+    form.childrenCount = current - 1
+  }
 }
 
 function copyPaymentNumber(number) {
@@ -237,6 +240,33 @@ function addToGoogleCalendar() {
   const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`
   window.open(url, '_blank')
 }
+
+function startNewRegistration() {
+  form.fullName = ''
+  form.quantaId = ''
+  form.gender = 'male'
+  form.mobileNumber = ''
+  form.occupation = ''
+  form.institution = ''
+  form.batch = ''
+  form.tShirtSize = 'L'
+  form.hasSpouse = false
+  form.childrenCount = 0
+  form.transportOption = 'self'
+  form.paymentMethod = 'bkash'
+  form.transactionId = ''
+
+  registrationRefNumber.value = ''
+  isComplete.value = false
+
+  try {
+    localStorage.removeItem('reunion2027_registered')
+  } catch (e) {
+    // ignore
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
@@ -309,9 +339,23 @@ function addToGoogleCalendar() {
                 <span class="text-slate-600 font-medium">টি-শার্ট সাইজ ও জেন্ডার:</span>
                 <span class="font-semibold text-slate-800">{{ form.tShirtSize }} • {{ form.gender }}</span>
               </div>
-              <div v-if="form.guests.length" class="flex items-center justify-between">
-                <span class="text-slate-600 font-medium">অতিথি সংখ্যা:</span>
-                <span class="font-semibold text-slate-800">{{ form.guests.length }} জন</span>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">Spouse (স্বামী/স্ত্রী):</span>
+                <span class="font-semibold" :class="form.hasSpouse ? 'text-emerald-700 font-bold' : 'text-slate-600'">
+                  {{ form.hasSpouse ? 'হ্যাঁ (সাথে আসবেন)' : 'না' }}
+                </span>
+              </div>
+              <div v-if="form.childrenCount > 0" class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">সন্তান সংখ্যা:</span>
+                <span class="font-semibold text-slate-800">{{ form.childrenCount }} জন</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">যাতায়াত ব্যবস্থা:</span>
+                <span class="font-semibold text-slate-800">{{ selectedTransport.title }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-slate-600 font-medium">মোট অংশগ্রহণকারী:</span>
+                <span class="font-semibold text-slate-800">{{ attendeeCount }} জন</span>
               </div>
               <div class="flex items-center justify-between border-t border-slate-200 pt-2.5">
                 <span class="text-slate-600 font-medium">পেমেন্ট মাধ্যম:</span>
@@ -349,14 +393,29 @@ function addToGoogleCalendar() {
             </button>
           </div>
 
-          <!-- Locked Submission Info (Prevents duplicate submission) -->
-          <div class="mt-6 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs sm:text-sm text-slate-600">
+          <!-- New Registration Button -->
+          <div class="mt-4 pt-4 border-t border-slate-200/80">
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-blue-50/80 hover:bg-blue-100/90 text-blue-900 px-5 py-3.5 text-sm sm:text-base font-bold border-2 border-blue-600 transition hover:border-blue-700 active:scale-[0.99] min-h-[50px] shadow-xs"
+              @click="startNewRegistration"
+            >
+              <UserPlus class="size-5 text-blue-700" />
+              <span>নতুন রেজিস্ট্রেশন ফরম (New Registration Form)</span>
+            </button>
+            <p class="mt-2 text-xs text-slate-500 text-center">
+              আরেকজন সদস্য বা সহপাঠীর নিবন্ধনের জন্য উপরের বাটনে চাপ দিন
+            </p>
+          </div>
+
+          <!-- Submission Confirmation Note -->
+          <div class="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs sm:text-sm text-slate-600">
             <div class="flex items-center justify-center gap-1.5 font-bold text-slate-800">
               <ShieldCheck class="size-4.5 text-emerald-600" />
               <span>নিবন্ধন চূড়ান্তভাবে গৃহীত হয়েছে</span>
             </div>
             <p class="mt-1 text-slate-500">
-              ডুপ্লিকেট সাবমিশন এড়াতে ফরমটি লক করা হয়েছে। কোনো তথ্যের পরিবর্তন বা সহায়তার জন্য আমাদের হেল্পলাইনে যোগাযোগ করুন।
+              আপনার দেওয়া তথ্য সফলভাবে সংরক্ষিত হয়েছে। কোনো তথ্যের পরিবর্তন বা সহায়তার জন্য আমাদের হেল্পলাইনে যোগাযোগ করতে পারেন।
             </p>
           </div>
         </div>
@@ -410,14 +469,11 @@ function addToGoogleCalendar() {
             </div>
 
             <!-- Price & Form Status Box -->
-            <div class="flex flex-col items-start rounded-xl bg-gradient-to-b from-[#0a234c]/90 to-[#061836]/90 border border-blue-400/25 p-5 sm:p-6 lg:items-end lg:text-right">
+            <div class="flex flex-col items-start rounded-sm bg-gradient-to-b from-[#0a234c]/90 to-[#061836]/90 border border-blue-400/25 p-2 lg:items-end lg:text-right">
               <span class="mt-2 text-xs sm:text-sm font-medium text-blue-200">Registration Fee</span>
               <div class="mt-0.5 flex items-baseline gap-1 text-3xl sm:text-4xl font-extrabold text-white">
                 <span>৳১০০</span>
               </div>
-              <p class="mt-1 text-xs sm:text-sm text-blue-200">
-                অতিথি সহ সকল আয়োজন ও ভোজ অন্তর্ভুক্ত
-              </p>
             </div>
           </div>
         </section>
@@ -519,7 +575,7 @@ function addToGoogleCalendar() {
                     <input
                       v-model.trim="form.batch"
                       type="text"
-                      placeholder="যেমন: ssc 2018 / hsc 2020"
+                      placeholder="যেমন: Batch 10 / HSC 2022"
                       class="block w-full min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/60 py-3 pl-11 pr-4 text-base sm:text-sm text-[#0f2747] placeholder-slate-400 transition focus:border-blue-600 focus:bg-white focus:outline-none"
                     />
                   </div>
@@ -648,225 +704,180 @@ function addToGoogleCalendar() {
             </section>
 
 
-            <!-- STEP 2: GUESTS & FAMILY -->
+            <!-- STEP 2: FAMILY INFORMATION (SPOUSE & CHILDREN) -->
             <section class="rounded-2xl bg-white p-5 sm:p-7">
-              <div class="mb-5 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div class="mb-5 flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-3">
-                  <div class="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
-                    <Users class="size-4.5" />
+                  <div class="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-lg bg-pink-50 text-pink-700">
+                    <Heart class="size-4.5" />
                   </div>
                   <div>
                     <h2 class="text-base sm:text-lg font-bold text-[#0c234a]">
-                      Guests & Family Information <span class="text-xs sm:text-sm font-normal text-slate-500">· guests</span>
+                      পরিবার সংক্রান্ত তথ্য <span class="text-xs sm:text-sm font-normal text-slate-500">· family information</span>
                     </h2>
                     <p class="text-xs sm:text-sm text-slate-600">
-                      No additional fee for guests.
+                      আপনার সাথে পরিবারের সদস্য থাকলে চিহ্নিত করুন
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <!-- Spouse Checkbox -->
+                <label
+                  class="relative flex cursor-pointer items-start gap-3.5 rounded-xl border p-4 transition select-none"
+                  :class="form.hasSpouse ? 'border-blue-600 bg-blue-50/70 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'"
+                >
+                  <div class="pt-0.5">
+                    <input
+                      type="checkbox"
+                      v-model="form.hasSpouse"
+                      class="sr-only"
+                    />
+                    <div
+                      class="flex size-5.5 shrink-0 items-center justify-center rounded-md border-2 transition"
+                      :class="form.hasSpouse ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'"
+                    >
+                      <Check v-if="form.hasSpouse" class="size-4 stroke-[3]" />
+                    </div>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm sm:text-base font-bold text-[#0c234a]">
+                        Spouse (স্বামী/স্ত্রী) নিয়ে আনতে চাই
+                      </span>
+                      <span
+                        v-if="form.hasSpouse"
+                        class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800"
+                      >
+                        ১ জন অন্তর্ভুক্ত
+                      </span>
+                    </div>
+                    <p class="mt-0.5 text-xs sm:text-sm text-slate-500">
+                      পুনর্মিলনীতে আপনার সাথে আপনার স্বামী অথবা স্ত্রী অংশগ্রহণ করবেন
+                    </p>
+                  </div>
+                </label>
+
+                <!-- Number of Children Field -->
+                <div class="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <Baby class="size-4.5 text-amber-600" />
+                        <label class="block text-sm sm:text-base font-bold text-[#0c234a]">
+                          সন্তান সংখ্যা (number of children)
+                        </label>
+                      </div>
+                      <p class="mt-0.5 text-xs text-slate-500">
+                        আপনার সাথে আসা সন্তানদের সংখ্যা (না আসলে ০ রাখুন)
+                      </p>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        class="flex size-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        :disabled="form.childrenCount <= 0"
+                        @click="decrementChildren"
+                        aria-label="Decrease children count"
+                      >
+                        <Minus class="size-4.5" />
+                      </button>
+
+                      <div class="relative w-20">
+                        <input
+                          v-model.number="form.childrenCount"
+                          type="number"
+                          min="0"
+                          max="20"
+                          class="block w-full min-h-[42px] rounded-xl border border-slate-300 bg-white py-2 text-center text-base font-bold text-[#0c234a] focus:border-blue-600 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        class="flex size-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 active:scale-95"
+                        @click="incrementChildren"
+                        aria-label="Increase children count"
+                      >
+                        <Plus class="size-4.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- STEP 3: TRANSPORTATION (যাতায়াত ব্যবস্থা) -->
+            <section class="rounded-2xl bg-white p-5 sm:p-7">
+              <div class="mb-5 flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                  <div class="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                    <Bus class="size-4.5" />
+                  </div>
+                  <div>
+                    <h2 class="text-base sm:text-lg font-bold text-[#0c234a]">
+                      যাতায়াত ব্যবস্থা <span class="text-xs sm:text-sm font-normal text-slate-500">· transportation</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-600">
+                      অনুষ্ঠানে অংশগ্রহণের জন্য আপনার সুবিধাজনক যাতায়াত মাধ্যম বেছে নিন
                     </p>
                   </div>
                 </div>
 
-                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs sm:text-sm font-semibold text-emerald-700">
-                  Free (No Charge)
+                <span class="rounded-full bg-blue-50 px-3 py-1 text-xs sm:text-sm font-semibold text-blue-800">
+                  {{ selectedTransport.feeText }}
                 </span>
               </div>
 
-              <!-- Clean Empty State -->
-              <div v-if="form.guests.length === 0" class="rounded-xl bg-slate-50/70 p-5 sm:p-7 text-center">
-                <div class="mx-auto flex size-12 sm:size-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                  <UserPlus class="size-6 sm:size-7" />
-                </div>
-                
-                <h3 class="mt-3 text-sm sm:text-base font-bold text-[#0c234a]">
-                  প্রিয়জনদের সাথে উৎসবে যোগ দিন
-                </h3>
-                <p class="mx-auto mt-1 max-w-md text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  স্পাউস, সন্তান বা পরিবারের সদস্যদের নিয়ে আসুন কোয়ান্টামমে। প্রত্যেক অতিথির জন্য আলাদা উৎসব টি-শার্ট ও বিশেষ ভোজের সুব্যবস্থা থাকবে।
-                </p>
-
-                <div class="mt-4">
-                  <button
-                    type="button"
-                    class="inline-flex min-h-[46px] items-center gap-2 rounded-xl bg-blue-700 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-blue-800"
-                    @click="addGuest"
-                  >
-                    <Plus class="size-4" />
-                    <span>অতিথি যোগ করুন (add guest)</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Clean Guest Cards List -->
-              <div v-else class="space-y-4">
-                <div
-                  v-for="(guest, index) in form.guests"
-                  :key="guest.id"
-                  class="rounded-xl bg-slate-50/70"
+              <!-- Transport Options List -->
+              <div class="space-y-3">
+                <label
+                  v-for="opt in transportOptions"
+                  :key="opt.id"
+                  class="relative flex cursor-pointer items-center justify-between gap-3.5 rounded-xl border p-4 transition select-none"
+                  :class="form.transportOption === opt.id ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600/20' : 'border-slate-200 bg-white hover:border-slate-300'"
                 >
-                  <div class="mb-3.5 flex items-center justify-between pb-2.5 border-b border-slate-200/50">
-                    <div class="flex items-center gap-2">
-                      <span class="flex size-6 items-center justify-center rounded-md bg-blue-700 text-xs font-bold text-white">
-                        {{ index + 1 }}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      class="flex min-h-[36px] items-center gap-1 px-2.5 text-xs sm:text-sm font-medium text-rose-600 hover:text-rose-800"
-                      @click="removeGuest(guest.id)"
+                  <div class="flex items-center gap-3.5 min-w-0">
+                    <!-- Radio circle -->
+                    <input
+                      type="radio"
+                      name="transportOption"
+                      :value="opt.id"
+                      v-model="form.transportOption"
+                      class="sr-only"
+                    />
+                    <div
+                      class="flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition"
+                      :class="form.transportOption === opt.id ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'"
                     >
-                      <Trash2 class="size-4" />
-                      <span>মুছে ফেলুন</span>
-                    </button>
-                  </div>
-
-                  <div class="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
-                    <!-- Guest Name -->
-                    <div>
-                      <label class="mb-1 block text-xs sm:text-sm font-semibold text-slate-800">
-                        Guest Name <span class="text-rose-500">*</span>
-                      </label>
-                      <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-indigo-600">
-                          <User class="size-4" />
-                        </div>
-                        <input
-                          v-model.trim="guest.name"
-                          type="text"
-                          required
-                          placeholder="অতিথির পুরো নাম লিখুন"
-                          class="block w-full min-h-[46px] rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-base sm:text-sm text-[#0f2747] placeholder-slate-400 focus:border-blue-600 focus:outline-none"
-                        />
-                      </div>
+                      <div v-if="form.transportOption === opt.id" class="size-2 rounded-full bg-white"></div>
                     </div>
 
-                    <!-- Guest Mobile -->
-                    <div>
-                      <label class="mb-1 block text-xs sm:text-sm font-semibold text-slate-800">
-                        Mobile Number
-                      </label>
-                      <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-emerald-600">
-                          <Phone class="size-4" />
-                        </div>
-                        <input
-                          v-model.trim="guest.number"
-                          type="tel"
-                          inputmode="tel"
-                          placeholder="01XXXXXXXXX"
-                          class="block w-full min-h-[46px] rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-base sm:text-sm text-[#0f2747] placeholder-slate-400 focus:border-blue-600 focus:outline-none"
-                        />
+                    <!-- Icon & Details -->
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm sm:text-base font-bold text-[#0c234a]">
+                          {{ opt.title }}
+                        </span>
                       </div>
-                    </div>
-
-                    <!-- Relationship Selector with Responsive Chips -->
-                    <div class="sm:col-span-2">
-                      <label class="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-800">
-                        Relationship with Guest <span class="text-rose-500">*</span>
-                      </label>
-                      <div class="flex flex-wrap gap-2">
-                        <button
-                          v-for="rel in relations"
-                          :key="rel.code"
-                          type="button"
-                          class="inline-flex min-h-[38px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs sm:text-sm font-medium transition"
-                          :class="guest.relation === rel.code ? 'border-blue-600 bg-blue-50 text-blue-900 font-bold' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'"
-                          @click="guest.relation = rel.code"
-                        >
-                          <Heart v-if="rel.icon === 'heart'" class="size-3.5 text-rose-500 shrink-0" />
-                          <Smile v-else-if="rel.icon === 'smile'" class="size-3.5 text-amber-500 shrink-0" />
-                          <Users v-else-if="rel.icon === 'users'" class="size-3.5 text-blue-500 shrink-0" />
-                          <UserPlus v-else-if="rel.icon === 'userplus'" class="size-3.5 text-emerald-500 shrink-0" />
-                          <Handshake v-else-if="rel.icon === 'handshake'" class="size-3.5 text-sky-500 shrink-0" />
-                          <User v-else class="size-3.5 text-slate-400 shrink-0" />
-                          <span>{{ rel.label }}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Guest Gender with PROPER RADIO BUTTONS -->
-                    <div>
-                      <label class="mb-1 block text-xs sm:text-sm font-semibold text-slate-800">
-                        Gender <span class="text-rose-500">*</span>
-                      </label>
-                      <div class="grid grid-cols-2 gap-2">
-                        <label
-                          class="relative flex min-h-[46px] cursor-pointer items-center justify-center sm:justify-start gap-2.5 rounded-xl border p-2.5 transition select-none"
-                          :class="guest.gender === 'male' ? 'border-blue-600 bg-blue-50 font-bold' : 'border-slate-200 bg-white hover:border-slate-300'"
-                        >
-                          <input
-                            type="radio"
-                            :name="'guest_gender_' + guest.id"
-                            value="male"
-                            v-model="guest.gender"
-                            class="sr-only"
-                          />
-                          <div
-                            class="flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 transition"
-                            :class="guest.gender === 'male' ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'"
-                          >
-                            <div v-if="guest.gender === 'male'" class="size-1.5 rounded-full bg-white"></div>
-                          </div>
-                          <span class="text-xs sm:text-sm font-semibold text-[#0f2747]">পুরুষ</span>
-                        </label>
-
-                        <label
-                          class="relative flex min-h-[46px] cursor-pointer items-center justify-center sm:justify-start gap-2.5 rounded-xl border p-2.5 transition select-none"
-                          :class="guest.gender === 'female' ? 'border-blue-600 bg-blue-50 font-bold' : 'border-slate-200 bg-white hover:border-slate-300'"
-                        >
-                          <input
-                            type="radio"
-                            :name="'guest_gender_' + guest.id"
-                            value="female"
-                            v-model="guest.gender"
-                            class="sr-only"
-                          />
-                          <div
-                            class="flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 transition"
-                            :class="guest.gender === 'female' ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'"
-                          >
-                            <div v-if="guest.gender === 'female'" class="size-1.5 rounded-full bg-white"></div>
-                          </div>
-                          <span class="text-xs sm:text-sm font-semibold text-[#0f2747]">মহিলা</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <!-- Guest T-Shirt Size SELECT OPTION DROPDOWN LIST -->
-                    <div>
-                      <label class="mb-1 block text-xs sm:text-sm font-semibold text-slate-800">
-                        T-Shirt Size <span class="text-rose-500">*</span>
-                      </label>
-                      <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600">
-                          <Shirt class="size-4" />
-                        </div>
-                        <select
-                          v-model="guest.tShirtSize"
-                          class="block w-full min-h-[46px] appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-8 text-base sm:text-sm text-[#0f2747] transition focus:border-blue-600 focus:outline-none"
-                        >
-                          <option v-for="s in tShirtSizes" :key="s.code" :value="s.code">
-                            {{ s.label }}
-                          </option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
-                          <ChevronDown class="size-3.5" />
-                        </div>
-                      </div>
+                      <p class="mt-0.5 text-xs text-slate-500">
+                        {{ opt.description }}
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <!-- Add More Guest Button -->
-                <div class="pt-1">
-                  <button
-                    type="button"
-                    class="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-xl border border-blue-600 bg-blue-50/50 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
-                    @click="addGuest"
-                  >
-                    <Plus class="size-4.5" />
-                    <span>আরও একজন অতিথি যোগ করুন (add guest)</span>
-                  </button>
-                </div>
+                  <!-- Fee Badge -->
+                  <div class="text-right shrink-0">
+                    <span
+                      class="inline-block rounded-lg px-2.5 py-1 text-xs sm:text-sm font-bold"
+                      :class="form.transportOption === opt.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'"
+                    >
+                      {{ opt.badge }}
+                    </span>
+                  </div>
+                </label>
               </div>
             </section>
 
@@ -894,14 +905,14 @@ function addToGoogleCalendar() {
               <!-- Payment Method Selector -->
               <div>
                 <label class="mb-2.5 block text-sm font-semibold text-slate-800">
-                  পেমেন্ট মাধ্যম বেছে নিন (select payment method) <span class="text-rose-500">*</span>
+                  Select Payment Method <span class="text-rose-500">*</span>
                 </label>
                 <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
                   <button
                     v-for="(pm, idx) in paymentMethods"
                     :key="pm.id"
                     type="button"
-                    class="relative flex min-h-[76px] flex-col items-center justify-center rounded-xl border p-3 text-center transition"
+                    class="relative flex min-h-[76px] flex-col items-center justify-center rounded-xl border p-2 text-center transition"
                     :class="[
                       form.paymentMethod === pm.id ? pm.activeBg + ' font-bold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
                       idx === 4 ? 'col-span-2 sm:col-span-1' : ''
@@ -1019,7 +1030,6 @@ function addToGoogleCalendar() {
                     v-model.trim="form.transactionId"
                     type="text"
                     required
-                    placeholder="ক্যাশ হলে 'cash' লিখুন"
                     class="block w-full min-h-[48px] rounded-xl border border-slate-200 bg-slate-50/60 py-3 pl-11 pr-4 text-base sm:text-sm font-mono text-[#0f2747] placeholder-slate-400 transition focus:border-blue-600 focus:bg-white focus:outline-none"
                   />
                 </div>
@@ -1049,14 +1059,30 @@ function addToGoogleCalendar() {
                   <span class="font-bold text-slate-900">৳{{ registrationFee }}</span>
                 </div>
 
-                <div v-if="form.guests.length" class="flex items-center justify-between text-slate-700">
-                  <span>অতিথিবৃন্দ ({{ form.guests.length }} জন)</span>
-                  <span class="font-bold text-emerald-600">ফ্রি (বিনামূল্যে)</span>
+                <div class="flex items-center justify-between text-slate-700">
+                  <div class="min-w-0 pr-2">
+                    <span class="block font-medium">যাতায়াত ব্যবস্থা</span>
+                    <span class="block text-xs text-slate-500 truncate">{{ selectedTransport.title }}</span>
+                  </div>
+                  <span class="font-bold shrink-0" :class="selectedTransport.fee > 0 ? 'text-blue-900' : 'text-slate-800'">
+                    {{ selectedTransport.fee > 0 ? '৳' + selectedTransport.fee : '০ টাকা' }}
+                  </span>
+                </div>
+
+                <div v-if="form.hasSpouse || form.childrenCount > 0" class="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-600 space-y-1">
+                  <div v-if="form.hasSpouse" class="flex justify-between">
+                    <span>স্পাউস (স্বামী/স্ত্রী):</span>
+                    <span class="font-semibold text-slate-800">১ জন</span>
+                  </div>
+                  <div v-if="form.childrenCount > 0" class="flex justify-between">
+                    <span>সন্তান:</span>
+                    <span class="font-semibold text-slate-800">{{ form.childrenCount }} জন</span>
+                  </div>
                 </div>
 
                 <div class="flex items-center justify-between text-slate-500 text-xs sm:text-sm">
                   <span>মোট সদস্য সংখ্যা</span>
-                  <span>{{ attendeeCount }} জন</span>
+                  <span class="font-semibold text-slate-800">{{ attendeeCount }} জন</span>
                 </div>
               </div>
 
@@ -1077,7 +1103,7 @@ function addToGoogleCalendar() {
                 :disabled="isSubmitting"
                 class="mt-4 flex w-full min-h-[50px] items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-center text-sm sm:text-base font-bold text-white transition hover:bg-blue-800 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>{{ isSubmitting ? 'জমা হচ্ছে...' : 'নিবন্ধন জমা দিন' }}</span>
+                <span>{{ isSubmitting ? 'Processing...' : 'Complete Registration' }}</span>
                 <ArrowRight class="size-4.5" />
               </button>
 
@@ -1112,7 +1138,7 @@ function addToGoogleCalendar() {
         <!-- STICKY MOBILE BOTTOM BAR (FOR SCREENS < LG) -->
         <div class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-3 flex items-center justify-between gap-3">
           <div>
-            <span class="text-xs text-slate-500 block leading-tight">সর্বমোট ফি</span>
+            <span class="text-xs text-slate-500 block leading-tight">সর্বমোট ফি (নিবন্ধন + যাতায়াত)</span>
             <span class="text-xl font-black text-blue-900 leading-none">৳{{ totalFee }}</span>
           </div>
 
