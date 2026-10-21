@@ -30,7 +30,9 @@ import {
   HelpCircle,
   GraduationCap,
   ChevronDown,
-  UserPlus
+  UserPlus,
+  Download,
+  Send
 } from '@lucide/vue'
 import quantumLogo from './quantum-logo.png'
 
@@ -227,18 +229,195 @@ onMounted(() => {
   }
 })
 
-function shareViaWhatsApp() {
-  const text = `আমি ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন, কোয়ান্টাম কসমো স্কুল ও কলেজ)-এ নিবন্ধন করেছি। আপনিও যোগ দিন: ${window.location.href}`
-  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank')
+function downloadRegistrationSlip() {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = 800
+    canvas.height = 1020
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, 1020)
+      bgGrad.addColorStop(0, '#061836')
+      bgGrad.addColorStop(1, '#020b18')
+      ctx.fillStyle = bgGrad
+      ctx.fillRect(0, 0, 800, 1020)
+
+      // Card container
+      ctx.fillStyle = '#ffffff'
+      if (ctx.roundRect) {
+        ctx.beginPath()
+        ctx.roundRect(30, 30, 740, 960, 24)
+        ctx.fill()
+      } else {
+        ctx.fillRect(30, 30, 740, 960)
+      }
+
+      // Header Banner
+      const headerGrad = ctx.createLinearGradient(30, 30, 770, 170)
+      headerGrad.addColorStop(0, '#0c234a')
+      headerGrad.addColorStop(1, '#1d4ed8')
+      ctx.fillStyle = headerGrad
+      if (ctx.roundRect) {
+        ctx.beginPath()
+        ctx.roundRect(30, 30, 740, 140, [24, 24, 0, 0])
+        ctx.fill()
+      } else {
+        ctx.fillRect(30, 30, 740, 140)
+      }
+
+      // Title
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 26px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('ঘরে ফেরা আনন্দ উৎসব ২০২৭', 400, 75)
+
+      ctx.font = '15px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+      ctx.fillStyle = '#bfdbfe'
+      ctx.fillText('কোয়ান্টা রিইউনিয়ন • কোয়ান্টাম কসমো স্কুল ও কলেজ', 400, 110)
+
+      ctx.font = '13px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+      ctx.fillStyle = '#fef08a'
+      ctx.fillText('১৬-১৭ ডিসেম্বর ২০২৬ • কোয়ান্টামম, লামা, বান্দরবান', 400, 142)
+
+      // Reference Card
+      ctx.fillStyle = '#eff6ff'
+      if (ctx.roundRect) {
+        ctx.beginPath()
+        ctx.roundRect(60, 195, 680, 60, 12)
+        ctx.fill()
+      } else {
+        ctx.fillRect(60, 195, 680, 60)
+      }
+
+      ctx.fillStyle = '#1e3a8a'
+      ctx.font = 'bold 15px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('রেজিস্ট্রেশন রেফারেন্স নম্বর (Ref No):', 85, 232)
+
+      ctx.font = 'bold 18px monospace'
+      ctx.textAlign = 'right'
+      ctx.fillText(registrationRefNumber.value || 'qcsc-2027-00000', 715, 232)
+
+      // Rows
+      const fields = [
+        ['অংশগ্রহণকারীর নাম:', form.fullName || '-'],
+        ['কোয়ান্টা আইডি:', form.quantaId || '-'],
+        ['মোবাইল নম্বর:', form.mobileNumber || '-'],
+        ['ব্যাচ / পাসের বছর:', form.batch || '-'],
+        ['টি-শার্ট সাইজ ও জেন্ডার:', `${form.tShirtSize} • ${form.gender === 'male' ? 'পুরুষ' : 'মহিলা'}`],
+        ['স্পাউস (স্বামী/স্ত্রী):', form.hasSpouse ? 'হ্যাঁ (সাথে আসবেন)' : 'না'],
+        ['সন্তান সংখ্যা:', `${form.childrenCount || 0} জন`],
+        ['যাতায়াত ব্যবস্থা:', selectedTransport.value.title],
+        ['পেমেন্ট মাধ্যম:', form.paymentMethod.toUpperCase()],
+        ['ট্রানজেকশন নম্বর:', form.transactionId || '-'],
+        ['সর্বমোট প্রদেয় ফি:', `৳${totalFee.value}`]
+      ]
+
+      let y = 300
+      ctx.textAlign = 'left'
+      fields.forEach(([label, value], i) => {
+        if (i % 2 === 0) {
+          ctx.fillStyle = '#f8fafc'
+          ctx.fillRect(60, y - 22, 680, 36)
+        }
+        ctx.fillStyle = '#475569'
+        ctx.font = '14px "SolaimanLipi", "Plus Jakarta Sans", sans-serif'
+        ctx.fillText(label, 80, y)
+
+        ctx.fillStyle = i === fields.length - 1 ? '#0c234a' : '#0f172a'
+        ctx.font = i === fields.length - 1 ? 'bold 18px "SolaimanLipi", sans-serif' : 'bold 14px "SolaimanLipi", sans-serif'
+        ctx.textAlign = 'right'
+        ctx.fillText(String(value), 720, y)
+        ctx.textAlign = 'left'
+        y += 40
+      })
+
+      // Divider & Footer
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(60, y + 15)
+      ctx.lineTo(740, y + 15)
+      ctx.stroke()
+
+      ctx.fillStyle = '#059669'
+      ctx.font = 'bold 16px "SolaimanLipi", sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('✓ নিবন্ধন সফলভাবে গৃহীত হয়েছে', 400, y + 55)
+
+      ctx.fillStyle = '#64748b'
+      ctx.font = '12px "SolaimanLipi", sans-serif'
+      ctx.fillText(`ডাউনলোড সময়: ${new Date().toLocaleDateString('bn-BD')} | হটলাইন: 01700-000000`, 400, y + 85)
+
+      const link = document.createElement('a')
+      link.download = `reunion2027-${form.quantaId || 'slip'}-${registrationRefNumber.value || 'info'}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+      return
+    }
+  } catch (e) {
+    // fallback
+  }
+
+  // Fallback text receipt download
+  const textContent = `===========================================
+ঘরে ফেরা আনন্দ উৎসব ২০২৭ - কোয়ান্টা রিইউনিয়ন
+কোয়ান্টাম কসমো স্কুল ও কলেজ
+১৬-১৭ ডিসেম্বর ২০২৬ • কোয়ান্টামম, লামা, বান্দরবান
+===========================================
+রেজিস্ট্রেশন রেফারেন্স নম্বর: ${registrationRefNumber.value}
+অংশগ্রহণকারীর নাম: ${form.fullName}
+কোয়ান্টা আইডি: ${form.quantaId}
+মোবাইল নম্বর: ${form.mobileNumber}
+ব্যাচ: ${form.batch || '-'}
+টি-শার্ট সাইজ ও জেন্ডার: ${form.tShirtSize} (${form.gender})
+স্পাউস (স্বামী/স্ত্রী): ${form.hasSpouse ? 'হ্যাঁ' : 'না'}
+সন্তান সংখ্যা: ${form.childrenCount} জন
+যাতায়াত ব্যবস্থা: ${selectedTransport.value.title}
+পেমেন্ট মাধ্যম: ${form.paymentMethod}
+ট্রানজেকশন নম্বর: ${form.transactionId}
+সর্বমোট ফি: ৳${totalFee.value}
+===========================================
+নিবন্ধন সফলভাবে সম্পন্ন ও জমা হয়েছে।
+`
+  const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `reunion2027-${registrationRefNumber.value || 'slip'}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
-function addToGoogleCalendar() {
-  const title = encodeURIComponent('ঘরে ফেরা আনন্দ উৎসব ২০২৭ - কোয়ান্টা রিইউনিয়ন')
-  const details = encodeURIComponent('কোয়ান্টাম কসমো স্কুল ও কলেজ কোয়ান্টা রিইউনিয়ন প্রোগ্রাম। স্মৃতিচারণ, মিলনমেলা ও সাংস্কৃতিক আয়োজন।')
-  const location = encodeURIComponent('কোয়ান্টামম, লামা, বান্দরবান (Quantumom, Lama, Bandarban)')
-  const dates = '20261216T030000Z/20261217T150000Z'
-  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`
-  window.open(url, '_blank')
+function shareRegistrationInfo() {
+  const url = window.location.href
+  const text = `🎉 ঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টা রিইউনিয়ন)\nআমার নিবন্ধন সফলভাবে সম্পন্ন হয়েছে!\n\n📋 রেফারেন্স: ${registrationRefNumber.value}\n👤 নাম: ${form.fullName}\n🆔 কোয়ান্টা আইডি: ${form.quantaId}\n🚌 যাতায়াত: ${selectedTransport.value.title}\n💳 সর্বমোট ফি: ৳${totalFee.value}\n\nআপনারাও কোয়ান্টামমে যোগ দিতে এখনই নিবন্ধন করুন: ${url}`
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'কোয়ান্টা রিইউনিয়ন ২০২৭ নিবন্ধন কনফার্মেশন',
+      text: text,
+      url: url
+    }).catch(() => {})
+  } else {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank')
+  }
+}
+
+function inviteAnother() {
+  const url = window.location.href
+  const text = `আসসালামু আলাইকুম / আদাব! প্রিয় কোয়ান্টা,\nঘরে ফেরা আনন্দ উৎসব ২০২৭ (কোয়ান্টাম কসমো স্কুল ও কলেজ রিইউনিয়ন)-এর আনুষ্ঠানিক অনলাইন রেজিস্ট্রেশন চলছে।\n\nতারিখ: ১৬-১৭ ডিসেম্বর ২০২৬\nস্থান: কোয়ান্টামম, লামা, বান্দরবান\n\nআপনিও দ্রুত এই লিংকে গিয়ে আপনার নিবন্ধন সম্পন্ন করুন:\n👉 ${url}`
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'ঘরে ফেরা আনন্দ উৎসব ২০২৭ - কোয়ান্টা রিইউনিয়ন এ আমন্ত্রণ',
+      text: text,
+      url: url
+    }).catch(() => {})
+  } else {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank')
+  }
 }
 
 function startNewRegistration() {
@@ -270,7 +449,7 @@ function startNewRegistration() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f1f6fd] text-[#0f2747] selection:bg-blue-600 selection:text-white pb-24 lg:pb-0">
+  <div class="min-h-screen bg-[#f1f6fd] text-[#0f2747] selection:bg-blue-600 selection:text-white pb-12">
 
     <div class="mx-auto max-w-7xl px-3 sm:px-6 sm:py-8 lg:px-8 py-5">
       
@@ -372,24 +551,36 @@ function startNewRegistration() {
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <!-- Action Buttons Grid (Download Slip, Share Info, Invite Another) -->
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- 1. Download Registration Info -->
             <button
               type="button"
-              class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 min-h-[46px]"
-              @click="addToGoogleCalendar"
+              class="flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-xs sm:text-sm font-bold text-white transition hover:bg-blue-800 active:scale-95 min-h-[48px] shadow-xs"
+              @click="downloadRegistrationSlip"
             >
-              <Calendar class="size-4.5 text-blue-200" />
-              <span>ক্যালেন্ডারে যোগ করুন</span>
+              <Download class="size-4.5 text-blue-200 shrink-0" />
+              <span>তথ্য ডাউনলোড</span>
             </button>
 
+            <!-- 2. Share Registration Info -->
             <button
               type="button"
-              class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 border border-emerald-200 min-h-[46px]"
-              @click="shareViaWhatsApp"
+              class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs sm:text-sm font-bold text-white transition hover:bg-emerald-700 active:scale-95 min-h-[48px] shadow-xs"
+              @click="shareRegistrationInfo"
             >
-              <Share2 class="size-4.5" />
-              <span>হোয়াটসঅ্যাপে শেয়ার করুন</span>
+              <Share2 class="size-4.5 text-emerald-200 shrink-0" />
+              <span>তথ্য শেয়ার করুন</span>
+            </button>
+
+            <!-- 3. Invite Another to Register -->
+            <button
+              type="button"
+              class="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-xs sm:text-sm font-bold text-white transition hover:bg-indigo-700 active:scale-95 min-h-[48px] shadow-xs"
+              @click="inviteAnother"
+            >
+              <Send class="size-4.5 text-indigo-200 shrink-0" />
+              <span>আমন্ত্রণ লিংক পাঠান</span>
             </button>
           </div>
 
@@ -1135,23 +1326,6 @@ function startNewRegistration() {
           </aside>
         </form>
 
-        <!-- STICKY MOBILE BOTTOM BAR (FOR SCREENS < LG) -->
-        <div class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-3 flex items-center justify-between gap-3">
-          <div>
-            <span class="text-xs text-slate-500 block leading-tight">সর্বমোট ফি (নিবন্ধন + যাতায়াত)</span>
-            <span class="text-xl font-black text-blue-900 leading-none">৳{{ totalFee }}</span>
-          </div>
-
-          <button
-            type="button"
-            :disabled="isSubmitting"
-            class="flex min-h-[46px] items-center gap-2 rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-800 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-            @click="completeRegistration"
-          >
-            <span>{{ isSubmitting ? 'জমা হচ্ছে...' : 'নিবন্ধন জমা দিন' }}</span>
-            <ArrowRight class="size-4" />
-          </button>
-        </div>
       </template>
     </div>
   </div>
