@@ -124,11 +124,11 @@ const totalFee = computed(() => {
 
 function fillSampleData() {
   form.fullName = 'আরিফুল ইসলাম'
-  form.quantaId = 'QC-2015-0842'
+  form.quantaId = '520'
   form.gender = 'male'
   form.mobileNumber = '01712345678'
-  form.occupation = 'সফটওয়্যার ইঞ্জিনিয়ার'
-  form.institution = 'টেক সলিউশনস লিমিটেড'
+  form.occupation = 'Student'
+  form.institution = 'Jahangirnagar University'
   form.batch = '2015'
   form.tShirtSize = 'XL'
   form.hasSpouse = true
